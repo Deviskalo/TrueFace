@@ -30,11 +30,6 @@ class SignupPayload(BaseModel):
     email: str
 
 
-@app.on_event("startup")
-def startup():
-    db.connect(MONGO_URI)
-
-
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(auth_scheme)):
     token = credentials.credentials
     payload = utils.decode_access_token(token, JWT_SECRET)
