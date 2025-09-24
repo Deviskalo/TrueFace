@@ -1,4 +1,4 @@
-from ..utils import get_embedding_from_image, cosine_similarity
+from backend.utils import get_embedding_from_image, cosine_similarity
 
 
 def test_embedding_and_similarity():

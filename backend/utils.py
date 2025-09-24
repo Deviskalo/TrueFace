@@ -1,6 +1,7 @@
 import numpy as np
 import hashlib
-import os
+from datetime import datetime, timedelta, timezone
+from jose import jwt, JWTError
 
 # Default threshold for verification
 DEFAULT_THRESHOLD = 0.6
@@ -34,3 +35,20 @@ def cosine_similarity(a, b):
     b = np.array(b, dtype=np.float32)
     denom = np.linalg.norm(a) * np.linalg.norm(b) + 1e-10
     return float(np.dot(a, b) / denom)
+
+
+def create_access_token(data: dict, secret: str, expires_minutes: int = 60) -> str:
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + timedelta(minutes=expires_minutes)
+    # use POSIX timestamp for exp
+    to_encode.update({"exp": int(expire.timestamp())})
+    token = jwt.encode(to_encode, secret, algorithm="HS256")
+    return token
+
+
+def decode_access_token(token: str, secret: str):
+    try:
+        payload = jwt.decode(token, secret, algorithms=["HS256"])
+        return payload
+    except JWTError:
+        return None
