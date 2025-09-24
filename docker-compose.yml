@@ -1,0 +1,35 @@
+
+version: "3.9"
+services:
+  frontend:
+    build: ./frontend
+    container_name: facial_recognition_frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+
+  backend:
+    build: ./backend
+    container_name: facial_recognition_backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mongo
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/facial_recognition_db
+      - JWT_SECRET=supersecretkey
+
+  mongo:
+    image: mongo:6.0
+    container_name: facial_recognition_mongo
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  mongo_data:
