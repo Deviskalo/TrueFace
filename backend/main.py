@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 
-from . import db, utils
+from . import db, utils, embeddings, schemas
 
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/facial_recognition_db")
 JWT_SECRET = os.getenv("JWT_SECRET", "supersecretkey")
@@ -50,7 +50,7 @@ async def signup(
     name: str = Form(...), email: str = Form(...), image: UploadFile = File(...)
 ):
     contents = await image.read()
-    embedding = utils.get_embedding_from_image(contents)
+    embedding = embeddings.get_embedding(contents)
     if embedding is None:
         raise HTTPException(status_code=400, detail="No face detected")
 
@@ -64,9 +64,9 @@ async def signup(
 
 
 @app.post("/api/auth/login")
-async def login(image: UploadFile = File(...)):
+async def login(image: UploadFile = File(...)) -> schemas.MatchResponse:
     contents = await image.read()
-    embedding = utils.get_embedding_from_image(contents)
+    embedding = embeddings.get_embedding(contents)
     if embedding is None:
         raise HTTPException(status_code=400, detail="No face detected")
 
@@ -102,9 +102,9 @@ def logout(credentials: HTTPAuthorizationCredentials = Depends(auth_scheme)):
 @app.post("/api/face/enroll")
 async def enroll(
     image: UploadFile = File(...), current_user: dict = Depends(get_current_user)
-):
+) -> schemas.EnrollResponse:
     contents = await image.read()
-    embedding = utils.get_embedding_from_image(contents)
+    embedding = embeddings.get_embedding(contents)
     if embedding is None:
         raise HTTPException(status_code=400, detail="No face detected")
 
@@ -118,9 +118,9 @@ async def enroll(
 @app.post("/api/face/verify")
 async def verify(
     image: UploadFile = File(...), current_user: dict = Depends(get_current_user)
-):
+) -> schemas.VerifyResponse:
     contents = await image.read()
-    embedding = utils.get_embedding_from_image(contents)
+    embedding = embeddings.get_embedding(contents)
     if embedding is None:
         raise HTTPException(status_code=400, detail="No face detected")
 
@@ -134,7 +134,7 @@ async def verify(
 @app.post("/api/face/recognize")
 async def recognize(image: UploadFile = File(...)):
     contents = await image.read()
-    embedding = utils.get_embedding_from_image(contents)
+    embedding = embeddings.get_embedding(contents)
     if embedding is None:
         raise HTTPException(status_code=400, detail="No face detected")
 
@@ -151,5 +151,7 @@ async def recognize(image: UploadFile = File(...)):
 
 
 @app.get("/api/logs")
-def logs(limit: int = 50, current_user: dict = Depends(get_current_user)):
+def logs(
+    limit: int = 50, current_user: dict = Depends(get_current_user)
+) -> schemas.LogsResponse:
     return JSONResponse({"logs": db.get_logs(limit)})
