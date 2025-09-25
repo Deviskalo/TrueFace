@@ -47,6 +47,107 @@ try:
     logger.info("Using face_recognition as embedding provider")
 
 except Exception:
-    # try other providers here (e.g., facenet-pytorch, insightface) if desired
-    get_embedding = _fallback
-    logger.info("Using fallback deterministic embedding provider")
+    # Prefer facenet-pytorch when available (more modern and high-quality
+    # embeddings). Keep this optional: if not installed we fall back to
+    # face_recognition or the deterministic stub.
+    try:
+        # facenet-pytorch provides MTCNN and InceptionResnetV1
+        from facenet_pytorch import MTCNN, InceptionResnetV1  # type: ignore
+        import torch  # type: ignore
+        from PIL import Image
+        import numpy as np
+        from io import BytesIO
+
+        # initialize detector and model lazily at module import; these objects
+        # are safe to keep in memory for the lifetime of the process.
+        _mtcnn = MTCNN(select_largest=True)
+        _resnet = InceptionResnetV1(pretrained="vggface2").eval()
+
+        def _fpt_get_embedding(image_bytes: bytes) -> Optional[List[float]]:
+            try:
+                image = Image.open(BytesIO(image_bytes)).convert("RGB")
+                face = _mtcnn(image)
+                if face is None:
+                    return None
+                # face is a torch tensor [3,160,160]
+                with torch.no_grad():
+                    emb = _resnet(face.unsqueeze(0))
+                vec = emb[0].cpu().numpy()
+                vec = vec / (np.linalg.norm(vec) + 1e-10)
+                return vec.astype(float).tolist()
+            except Exception as exc:
+                logger.exception("facenet-pytorch provider failed: %s", exc)
+                return None
+
+        get_embedding = _fpt_get_embedding
+        logger.info("Using facenet-pytorch as embedding provider")
+
+    except Exception:
+        # Try an ONNX provider first if the runtime and model image are present.
+        try:
+            import onnxruntime as ort  # type: ignore
+            from PIL import Image
+            import numpy as np
+            from io import BytesIO
+            import os
+
+            _onnx_model_path = os.path.join(
+                os.path.dirname(__file__), "models", "face_embedding.onnx"
+            )
+
+            def _onnx_get_embedding(image_bytes: bytes) -> Optional[List[float]]:
+                # This adapter assumes a model that accepts a (1,3,160,160) float32
+                # input normalized to [-1,1]. If your ONNX model uses different
+                # preprocessing, adjust this function accordingly.
+                if not os.path.exists(_onnx_model_path):
+                    return None
+                try:
+                    img = Image.open(BytesIO(image_bytes)).convert("RGB")
+                    img = img.resize((160, 160))
+                    arr = np.array(img).astype(np.float32)
+                    # transpose to CHW and scale to [-1,1]
+                    arr = (arr / 127.5) - 1.0
+                    arr = np.transpose(arr, (2, 0, 1))
+                    inp = arr[np.newaxis, :]
+                    sess = ort.InferenceSession(
+                        _onnx_model_path, providers=["CPUExecutionProvider"]
+                    )
+                    input_name = sess.get_inputs()[0].name
+                    out = sess.run(None, {input_name: inp})
+                    vec = np.array(out[0])[0]
+                    vec = vec / (np.linalg.norm(vec) + 1e-10)
+                    return vec.astype(float).tolist()
+                except Exception as exc:
+                    logger.exception("ONNX provider failed: %s", exc)
+                    return None
+
+            get_embedding = _onnx_get_embedding
+            logger.info("Using ONNX embedding provider (if model file present)")
+
+        except Exception:
+            # fall back to face_recognition if available, otherwise to stub
+            try:
+                import face_recognition  # type: ignore
+                from PIL import Image  # type: ignore
+                import numpy as np  # type: ignore
+                from io import BytesIO
+
+                def _fr_get_embedding(image_bytes: bytes) -> Optional[List[float]]:
+                    try:
+                        image = Image.open(BytesIO(image_bytes)).convert("RGB")
+                        arr = np.array(image)
+                        encs = face_recognition.face_encodings(arr)
+                        if not encs:
+                            return None
+                        vec = encs[0].astype(float).tolist()
+                        return vec
+                    except Exception as exc:  # keep provider errors local
+                        logger.exception("face_recognition provider failed: %s", exc)
+                        return None
+
+                get_embedding = _fr_get_embedding
+                logger.info("Using face_recognition as embedding provider")
+
+            except Exception:
+                get_embedding = _fallback
+                logger.info("Using fallback deterministic embedding provider")
