@@ -1,26 +1,57 @@
 # Face embedding ONNX model
 
-This folder is where an optional ONNX face-embedding model should be placed
-for the ONNX-based embedding provider in `backend/embeddings.py`.
+This folder contains an ONNX face-embedding model used by the backend's
+ONNX provider. The repository currently includes a converted model exported
+from the `py-feat/mobilefacenet` PyTorch checkpoint. Use this file if you
+want a ready-to-run face embedding provider.
 
 Filename expected: `face_embedding.onnx`
 
-How to obtain a model
+Provenance
+- Converted from the `py-feat/mobilefacenet` PyTorch checkpoint
+  (`mobilefacenet_model_best.pth.tar`) using the helper
+  `backend/models/convert_mobilefacenet_to_onnx.py` in this repo.
 
-- Preferred: provide your own ONNX model that accepts a single image tensor
-  shaped (1,3,160,160) and returns a 1-D embedding vector (float32). Adjust
-  the preprocessing in `backend/embeddings.py::_onnx_get_embedding` if your
-  model expects a different input shape or normalization.
+Preprocessing expected by the adapter
+- Input: an RGB image which the adapter resizes to 160x160.
+- Scaling: adapter scales pixels as `(arr / 127.5) - 1.0` and transposes to
+  channel-first (C,H,W) before passing a single-batch (1,3,160,160) tensor to
+  the model. If you use a different ONNX model, update
+  `backend/embeddings.py::_onnx_get_embedding` accordingly.
 
-- Quick download (example): set the MODEL_URL environment variable and run
-  the included downloader script.
+Embedding size and behavior
+- The currently committed ONNX returns 512-dimensional float embeddings (the
+  same output dimension as the checkpoint). The adapter normalizes the vector
+  to unit L2 length before returning it.
 
-Example:
+Tests and deterministic fallback
+- Tests (and some light-weight clients) upload dummy bytes that are not valid
+  images. To keep tests deterministic and fast, `backend/embeddings.py` will
+  fall back to a deterministic stub embedding when the ONNX adapter cannot
+  decode the provided bytes. This allows the test suite to run without GPU
+  or heavy ML libraries.
+
+How to re-generate the ONNX model
+1. Place a PyTorch checkpoint locally or set `CHECKPOINT_URL` to a downloadable
+   checkpoint (for example, the Hugging Face raw checkpoint URL for
+   `py-feat/mobilefacenet`).
+2. Ensure a CPU PyTorch and onnx are installed in your venv.
+3. Run the converter:
 
 ```bash
-export MODEL_URL="https://example.com/path/to/your/face_embedding.onnx"
-python3 backend/models/download_model.py
+# (from repo root)
+# using a local checkpoint:
+python3 backend/models/convert_mobilefacenet_to_onnx.py \
+  --checkpoint /path/to/mobilefacenet_model_best.pth.tar \
+  --output backend/models/face_embedding.onnx
+
+# or using CHECKPOINT_URL (the script will download and extract if needed):
+CHECKPOINT_URL="https://huggingface.co/py-feat/mobilefacenet/resolve/main/mobilefacenet_model_best.pth.tar" \
+  python3 backend/models/convert_mobilefacenet_to_onnx.py --output backend/models/face_embedding.onnx
 ```
 
-If you need help converting a PyTorch model to ONNX, ask and I can add a
-conversion script (note: converting may require PyTorch to be installed).
+Notes
+- The exported model is committed to this repo for convenience. If you plan
+  to add significantly larger models in the future, consider using Git LFS to
+  avoid bloating repository history.
+
