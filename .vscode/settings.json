@@ -1,6 +1,6 @@
 {
-    "cSpell.words": [
-        "supersecretkey",
-        "Iskalo"
-    ]
+  "cSpell.words": ["supersecretkey", "Iskalo"],
+  "python.testing.pytestArgs": ["backend"],
+  "python.testing.unittestEnabled": false,
+  "python.testing.pytestEnabled": true
 }
