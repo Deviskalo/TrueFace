@@ -5,10 +5,11 @@ This folder contains a minimal FastAPI backend that implements the facial recogn
 Quick start (local, when MongoDB is available at MONGO_URI):
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+python -m venv ../backend/venv
+source ../backend/venv/bin/activate
+pip install -r ../backend/requirements.txt
+# Run from the repository root so package imports resolve
+uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 Environment variables:

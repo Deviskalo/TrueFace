@@ -15,10 +15,16 @@ def get_embedding_from_image(image_bytes: bytes):
     Replace this with a real model (e.g., face_recognition, insightface, or a TF/PyTorch model)
     that returns a fixed-size float32 vector.
     """
+    import os
+    DEV_MODE_NO_DB = os.getenv("DEV_MODE_NO_DB", "false").lower() in ["true", "1", "yes"]
+    
     if not image_bytes:
         return None
-    # crude 'no face' simulation: if file is very small, pretend no face
-    if len(image_bytes) < 64:
+    
+    # In dev mode, be more lenient - accept any non-empty image
+    # In production mode, require minimum file size
+    min_size = 8 if DEV_MODE_NO_DB else 64
+    if len(image_bytes) < min_size:
         return None
 
     h = hashlib.sha256(image_bytes).digest()

@@ -1,0 +1,8 @@
+# Local env
+.env
+.venv
+__pycache__/
+*.pyc
+.DS_Store
+# model artifacts
+backend/models/face_embedding.onnx

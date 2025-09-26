@@ -1,8 +1,12 @@
 from typing import Optional, List, Dict
 from pymongo import MongoClient
+import pymongo.errors as pymongo_errors
 import numpy as np
 from bson import ObjectId
 import logging
+import os
+import time
+from datetime import datetime, timezone, timedelta
 
 from .ann_index import ANNIndex
 
@@ -15,6 +19,32 @@ _ann_index: Optional[ANNIndex] = None
 
 _client: Optional[MongoClient] = None
 _db = None
+
+# Development mode check
+DEV_MODE_NO_DB = os.getenv("DEV_MODE_NO_DB", "false").lower() in ["true", "1", "yes"]
+
+# Mock data for development mode
+_mock_users = {}
+_mock_sessions = {}
+_mock_logs = []
+
+
+class DBUnavailable(Exception):
+    """Raised when the database hasn't been connected or is unreachable."""
+
+
+def _ensure_db():
+    """Helper to check that the module-level _db is available.
+
+    Raises
+    ------
+    DBUnavailable
+        If the database hasn't been initialized via connect().
+    """
+    if DEV_MODE_NO_DB:
+        return  # Skip database check in dev mode
+    if _db is None:
+        raise DBUnavailable("Database not connected")
 
 
 def connect(uri: str):
@@ -56,19 +86,48 @@ def close():
 
 
 def create_user(name: str, email: str, embedding: List[float]):
+    if DEV_MODE_NO_DB:
+        # Mock implementation for dev mode
+        user_id = f"mock_user_{len(_mock_users) + 1}"
+        _mock_users[user_id] = {
+            "_id": user_id,
+            "name": name,
+            "email": email,
+            "faces": [{"embedding": embedding}]
+        }
+        logger.info(f"[DEV MODE] Created mock user: {user_id} ({name})")
+        return user_id
+    
+    _ensure_db()
     users = _db["users"]
-    doc = {
-        "name": name,
-        "email": email,
-        "faces": [{"embedding": embedding}],
-    }
-    res = users.insert_one(doc)
-    return str(res.inserted_id)
+    doc = {"name": name, "email": email, "faces": [{"embedding": embedding}]}
+    try:
+        res = users.insert_one(doc)
+        return str(res.inserted_id)
+    except (
+        pymongo_errors.ServerSelectionTimeoutError,
+        pymongo_errors.AutoReconnect,
+        pymongo_errors.PyMongoError,
+    ) as e:
+        logger.exception("DB unavailable during create_user")
+        raise DBUnavailable(str(e))
 
 
 def get_user_by_id(user_id: str):
+    if DEV_MODE_NO_DB:
+        return _mock_users.get(user_id)
+    
+    _ensure_db()
     users = _db["users"]
-    u = users.find_one({"_id": ObjectId(user_id)})
+    try:
+        u = users.find_one({"_id": ObjectId(user_id)})
+    except (
+        pymongo_errors.ServerSelectionTimeoutError,
+        pymongo_errors.AutoReconnect,
+        pymongo_errors.PyMongoError,
+    ) as e:
+        logger.exception("DB unavailable during get_user_by_id")
+        raise DBUnavailable(str(e))
     if not u:
         return None
     u["_id"] = str(u["_id"])
@@ -76,16 +135,43 @@ def get_user_by_id(user_id: str):
 
 
 def add_face_to_user(user_id: str, embedding: List[float]) -> bool:
+    if DEV_MODE_NO_DB:
+        user = _mock_users.get(user_id)
+        if user:
+            user["faces"].append({"embedding": embedding})
+            return True
+        return False
+    
+    _ensure_db()
     users = _db["users"]
-    res = users.update_one(
-        {"_id": ObjectId(user_id)}, {"$push": {"faces": {"embedding": embedding}}}
-    )
-    return res.matched_count > 0
+    try:
+        res = users.update_one(
+            {"_id": ObjectId(user_id)}, {"$push": {"faces": {"embedding": embedding}}}
+        )
+        return res.matched_count > 0
+    except (
+        pymongo_errors.ServerSelectionTimeoutError,
+        pymongo_errors.AutoReconnect,
+        pymongo_errors.PyMongoError,
+    ) as e:
+        logger.exception("DB unavailable during add_face_to_user")
+        raise DBUnavailable(str(e))
 
 
 def _all_embeddings_with_user():
+    _ensure_db()
     users = _db["users"]
-    for u in users.find({}, {"faces": 1, "name": 1}):
+    try:
+        cursor = users.find({}, {"faces": 1, "name": 1})
+    except (
+        pymongo_errors.ServerSelectionTimeoutError,
+        pymongo_errors.AutoReconnect,
+        pymongo_errors.PyMongoError,
+    ) as e:
+        logger.exception("DB unavailable during _all_embeddings_with_user")
+        raise DBUnavailable(str(e))
+
+    for u in cursor:
         uid = str(u.get("_id"))
         faces = u.get("faces", [])
         for f in faces:
@@ -95,8 +181,20 @@ def _all_embeddings_with_user():
 
 
 def find_best_match(query_embedding: List[float]) -> Optional[Dict]:
+    if DEV_MODE_NO_DB:
+        # Mock implementation: return first user if any exist with high confidence
+        if _mock_users:
+            first_user = next(iter(_mock_users.values()))
+            return {
+                "user_id": first_user["_id"],
+                "name": first_user["name"],
+                "confidence": 0.95  # High confidence for demo
+            }
+        return None
+    
     # If we have an ANN index, use it to get top candidate(s) and compute
     # a precise score against the stored embedding(s).
+    _ensure_db()
     global _ann_index
     q = np.array(query_embedding)
     if _ann_index:
@@ -108,7 +206,15 @@ def find_best_match(query_embedding: List[float]) -> Optional[Dict]:
             # find the precise embedding(s) for this user id by scanning
             # user's faces and compute precise cosine similarity
             users = _db["users"]
-            u = users.find_one({"_id": ObjectId(cid)})
+            try:
+                u = users.find_one({"_id": ObjectId(cid)})
+            except (
+                pymongo_errors.ServerSelectionTimeoutError,
+                pymongo_errors.AutoReconnect,
+                pymongo_errors.PyMongoError,
+            ) as e:
+                logger.exception("DB unavailable during find_best_match (ann branch)")
+                raise DBUnavailable(str(e))
             if not u:
                 return None
             best_score = 0.0
@@ -141,8 +247,21 @@ def find_best_match(query_embedding: List[float]) -> Optional[Dict]:
 
 
 def verify_user(user_id: str, query_embedding: List[float]) -> float:
+    if DEV_MODE_NO_DB:
+        # Mock implementation: return high confidence if user exists
+        return 0.95 if user_id in _mock_users else 0.0
+    
+    _ensure_db()
     users = _db["users"]
-    u = users.find_one({"_id": ObjectId(user_id)})
+    try:
+        u = users.find_one({"_id": ObjectId(user_id)})
+    except (
+        pymongo_errors.ServerSelectionTimeoutError,
+        pymongo_errors.AutoReconnect,
+        pymongo_errors.PyMongoError,
+    ) as e:
+        logger.exception("DB unavailable during verify_user")
+        raise DBUnavailable(str(e))
     if not u:
         return 0.0
     q = np.array(query_embedding)
@@ -158,6 +277,7 @@ def verify_user(user_id: str, query_embedding: List[float]) -> float:
 
 def search_candidates(query_embedding: List[float], top_k: int = 5) -> List[Dict]:
     # Try ANN first
+    _ensure_db()
     global _ann_index
     q = np.array(query_embedding)
     results = []
@@ -166,7 +286,17 @@ def search_candidates(query_embedding: List[float], top_k: int = 5) -> List[Dict
             knn = _ann_index.knn(query_embedding, k=top_k)
             for uid, sim in knn:
                 # retrieve user details for each uid
-                u = _db["users"].find_one({"_id": ObjectId(uid)})
+                try:
+                    u = _db["users"].find_one({"_id": ObjectId(uid)})
+                except (
+                    pymongo_errors.ServerSelectionTimeoutError,
+                    pymongo_errors.AutoReconnect,
+                    pymongo_errors.PyMongoError,
+                ) as e:
+                    logger.exception(
+                        "DB unavailable during search_candidates (ann branch)"
+                    )
+                    raise DBUnavailable(str(e))
                 if not u:
                     continue
                 results.append(
@@ -205,6 +335,9 @@ def search_candidates(query_embedding: List[float], top_k: int = 5) -> List[Dict
 
 
 def get_logs(limit: int = 50):
+    if DEV_MODE_NO_DB:
+        # Return recent mock logs
+        return _mock_logs[-limit:] if _mock_logs else []
     """
     Fetch recognition history (logs collection).
 
@@ -218,11 +351,31 @@ def get_logs(limit: int = 50):
     List[Dict]
         List of logs, sorted by timestamp in descending order.
     """
+    _ensure_db()
     logs = _db["logs"]
+    try:
+        cursor = logs.find().sort("timestamp", -1).limit(limit)
+    except (
+        pymongo_errors.ServerSelectionTimeoutError,
+        pymongo_errors.AutoReconnect,
+        pymongo_errors.PyMongoError,
+    ) as e:
+        logger.exception("DB unavailable during get_logs (cursor acquisition)")
+        raise DBUnavailable(str(e))
+
     res = []
-    for entry in logs.find().sort("timestamp", -1).limit(limit):
-        entry["_id"] = str(entry["_id"])
-        res.append(entry)
+    try:
+        for entry in cursor:
+            entry["_id"] = str(entry["_id"])
+            res.append(entry)
+    except (
+        pymongo_errors.ServerSelectionTimeoutError,
+        pymongo_errors.AutoReconnect,
+        pymongo_errors.PyMongoError,
+    ) as e:
+        logger.exception("DB unavailable during get_logs (cursor iteration)")
+        raise DBUnavailable(str(e))
+
     return res
 
 
@@ -230,6 +383,20 @@ def log_action(
     user_id: str, action: str, confidence: float = None, metadata: dict = None
 ):
     """Insert a log entry into the logs collection."""
+    if DEV_MODE_NO_DB:
+        # Mock implementation: add to in-memory logs
+        log_entry = {
+            "_id": f"log_{len(_mock_logs) + 1}",
+            "user_id": user_id,
+            "action": action,
+            "confidence": float(confidence) if confidence is not None else None,
+            "timestamp": datetime.now(timezone.utc),
+            "metadata": metadata or {},
+        }
+        _mock_logs.append(log_entry)
+        return log_entry
+    
+    _ensure_db()
     logs = _db["logs"]
     doc = {
         "user_id": user_id,
@@ -241,7 +408,15 @@ def log_action(
         ),
         "metadata": metadata or {},
     }
-    return logs.insert_one(doc)
+    try:
+        return logs.insert_one(doc)
+    except (
+        pymongo_errors.ServerSelectionTimeoutError,
+        pymongo_errors.AutoReconnect,
+        pymongo_errors.PyMongoError,
+    ) as e:
+        logger.exception("DB unavailable during log_action")
+        raise DBUnavailable(str(e))
 
 
 def create_session(user_id: str):
@@ -249,6 +424,24 @@ def create_session(user_id: str):
 
 
 def create_session_with_expiry(user_id: str, expires_minutes: int | None):
+    if DEV_MODE_NO_DB:
+        # Mock implementation: create in-memory session
+        import uuid
+        sid = str(uuid.uuid4())
+        now = datetime.now(timezone.utc)
+        expires_at = None
+        if expires_minutes is not None:
+            expires_at = now + timedelta(minutes=expires_minutes)
+        _mock_sessions[sid] = {
+            "_id": sid,
+            "user_id": user_id,
+            "issued_at": now,
+            "revoked": False,
+            "expires_at": expires_at,
+        }
+        return sid
+    
+    _ensure_db()
     sessions = _db["sessions"]
     import uuid
 
@@ -264,19 +457,63 @@ def create_session_with_expiry(user_id: str, expires_minutes: int | None):
         "revoked": False,
         "expires_at": expires_at,
     }
-    sessions.insert_one(doc)
+    try:
+        sessions.insert_one(doc)
+    except (
+        pymongo_errors.ServerSelectionTimeoutError,
+        pymongo_errors.AutoReconnect,
+        pymongo_errors.PyMongoError,
+    ) as e:
+        logger.exception("DB unavailable during create_session_with_expiry")
+        raise DBUnavailable(str(e))
     return sid
 
 
 def revoke_session(session_id: str):
+    if DEV_MODE_NO_DB:
+        session = _mock_sessions.get(session_id)
+        if session:
+            session["revoked"] = True
+            return True
+        return False
+    
+    _ensure_db()
     sessions = _db["sessions"]
-    res = sessions.update_one({"_id": session_id}, {"$set": {"revoked": True}})
-    return res.matched_count > 0
+    try:
+        res = sessions.update_one({"_id": session_id}, {"$set": {"revoked": True}})
+        return res.matched_count > 0
+    except (
+        pymongo_errors.ServerSelectionTimeoutError,
+        pymongo_errors.AutoReconnect,
+        pymongo_errors.PyMongoError,
+    ) as e:
+        logger.exception("DB unavailable during revoke_session")
+        raise DBUnavailable(str(e))
 
 
 def is_session_active(session_id: str) -> bool:
+    if DEV_MODE_NO_DB:
+        session = _mock_sessions.get(session_id)
+        if not session:
+            return False
+        if session.get("revoked", False):
+            return False
+        expires_at = session.get("expires_at")
+        if expires_at is None:
+            return True
+        return expires_at > datetime.now(timezone.utc)
+    
+    _ensure_db()
     sessions = _db["sessions"]
-    doc = sessions.find_one({"_id": session_id})
+    try:
+        doc = sessions.find_one({"_id": session_id})
+    except (
+        pymongo_errors.ServerSelectionTimeoutError,
+        pymongo_errors.AutoReconnect,
+        pymongo_errors.PyMongoError,
+    ) as e:
+        logger.exception("DB unavailable during is_session_active")
+        raise DBUnavailable(str(e))
     if not doc:
         return False
     if bool(doc.get("revoked", False)):

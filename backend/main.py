@@ -1,27 +1,59 @@
 import os
+
+try:
+    # optional convenience: load environment from .env files.
+    # Prefer repo-root .env to override any pre-set environment values so that
+    # local development is predictable.
+    from dotenv import load_dotenv
+    from pathlib import Path
+
+    backend_dir = Path(__file__).resolve().parent
+    repo_root = backend_dir.parent
+
+    # Load backend/.env first (legacy), then root .env overriding values.
+    load_dotenv(backend_dir / ".env", override=False)
+    load_dotenv(repo_root / ".env", override=True)
+except Exception:
+    # dotenv is optional; if not present we just rely on the environment.
+    pass
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, Form
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 
 from . import db, utils, embeddings, schemas
+from .db import DBUnavailable
 
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/facial_recognition_db")
 JWT_SECRET = os.getenv("JWT_SECRET", "supersecretkey")
 SESSION_EXPIRES_MINUTES = int(os.getenv("SESSION_EXPIRES_MINUTES", "60"))
+DEV_MODE_NO_DB = os.getenv("DEV_MODE_NO_DB", "false").lower() in ["true", "1", "yes"]
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    db.connect(MONGO_URI)
+    if not DEV_MODE_NO_DB:
+        db.connect(MONGO_URI)
     try:
         yield
     finally:
-        db.close()
+        if not DEV_MODE_NO_DB:
+            db.close()
 
 
 app = FastAPI(title="TrueFace Backend", lifespan=lifespan)
+
+# Add CORS middleware to allow frontend communication
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],  # Frontend URLs
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 auth_scheme = HTTPBearer()
 
 
@@ -61,6 +93,17 @@ async def signup(
     )
     db.log_action(user_id, "signup", confidence=None, metadata={"email": email})
     return JSONResponse({"user_id": user_id, "token": token})
+
+
+@app.exception_handler(DBUnavailable)
+def db_unavailable_handler(request, exc: DBUnavailable):
+    # Return 503 Service Unavailable with a short, user-friendly message.
+    return JSONResponse(
+        status_code=503,
+        content={
+            "detail": "Database unavailable. Please start MongoDB or check MONGO_URI."
+        },
+    )
 
 
 @app.post("/api/auth/login")
@@ -155,3 +198,62 @@ def logs(
     limit: int = 50, current_user: dict = Depends(get_current_user)
 ) -> schemas.LogsResponse:
     return JSONResponse({"logs": db.get_logs(limit)})
+
+
+def _mask_uri(uri: str | None) -> str:
+    if not uri:
+        return "(not set)"
+    # mask credentials if present
+    try:
+        if "@" in uri and ":" in uri:
+            parts = uri.split("@")
+            creds, tail = parts[0], parts[1]
+            # keep scheme and host, mask credentials
+            if "//" in creds:
+                scheme, creds_only = creds.split("//", 1)
+                return f"{scheme}//***@{tail}"
+    except Exception:
+        pass
+    # fallback: show truncated uri
+    return uri[:60] + ("..." if len(uri) > 60 else "")
+
+
+@app.get("/health")
+def health():
+    """Health check: returns app + DB connectivity status.
+
+    - status: ok/partial/down
+    - db: reachable? + optional message
+    - mongo_uri: masked for debugging
+    """
+    if DEV_MODE_NO_DB:
+        return JSONResponse(
+            status_code=200,
+            content={
+                "status": "ok",
+                "db": {"reachable": False, "message": "DB disabled in dev mode"},
+                "mongo_uri": "(dev mode - no db)",
+                "dev_mode": True,
+            },
+        )
+    
+    try:
+        # call a light DB operation to verify connectivity
+        # db.get_logs uses the db layer and will raise DBUnavailable if not connected
+        db.get_logs(limit=1)
+        db_status = {"reachable": True}
+        status = "ok"
+        code = 200
+    except DBUnavailable as e:
+        db_status = {"reachable": False, "error": str(e)}
+        status = "partial"
+        code = 503
+
+    return JSONResponse(
+        status_code=code,
+        content={
+            "status": status,
+            "db": db_status,
+            "mongo_uri": _mask_uri(MONGO_URI),
+        },
+    )

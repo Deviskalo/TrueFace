@@ -8,3 +8,4 @@ pytest>=7.4.0
 numpy>=1.27.0
 # Optional: fast ANN index for large-scale search. Install only if desired.
 # hnswlib==0.7.0
+python-dotenv>=1.0.0
