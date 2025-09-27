@@ -29,3 +29,15 @@ class VerifyResponse(BaseModel):
 
 class LogsResponse(BaseModel):
     logs: List[dict]
+
+
+class ProfileResponse(BaseModel):
+    profile: dict
+
+
+class SessionsResponse(BaseModel):
+    sessions: List[dict]
+
+
+class UserHistoryResponse(BaseModel):
+    history: List[dict]

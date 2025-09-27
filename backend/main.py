@@ -200,6 +200,54 @@ def logs(
     return JSONResponse({"logs": db.get_logs(limit)})
 
 
+@app.get("/api/user/profile")
+def get_profile(current_user: dict = Depends(get_current_user)) -> schemas.ProfileResponse:
+    """Get current user's profile information."""
+    created_at = current_user.get("created_at")
+    profile = {
+        "user_id": current_user["_id"],
+        "name": current_user["name"],
+        "email": current_user["email"],
+        "face_count": len(current_user.get("faces", [])),
+        "created_at": created_at.isoformat() if created_at else None,
+    }
+    return JSONResponse({"profile": profile})
+
+
+@app.get("/api/user/sessions")
+def get_user_sessions(current_user: dict = Depends(get_current_user)) -> schemas.SessionsResponse:
+    """Get current user's active sessions."""
+    sessions = db.get_user_sessions(current_user["_id"])
+    return JSONResponse({"sessions": sessions})
+
+
+@app.post("/api/user/sessions/revoke-all")
+def revoke_all_sessions(
+    current_user: dict = Depends(get_current_user),
+    credentials: HTTPAuthorizationCredentials = Depends(auth_scheme)
+):
+    """Revoke all sessions for the current user except the current one."""
+    try:
+        # Extract current session ID from token
+        token = credentials.credentials
+        payload = utils.decode_access_token(token, JWT_SECRET)
+        current_session_id = payload.get("session_id") if payload else None
+        
+        revoked_count = db.revoke_all_user_sessions(current_user["_id"], exclude_session_id=current_session_id)
+        return JSONResponse({"revoked_count": revoked_count})
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/user/history")
+def get_user_history(
+    limit: int = 50, current_user: dict = Depends(get_current_user)
+) -> schemas.UserHistoryResponse:
+    """Get authentication/recognition history for the current user."""
+    history = db.get_user_logs(current_user["_id"], limit)
+    return JSONResponse({"history": history})
+
+
 def _mask_uri(uri: str | None) -> str:
     if not uri:
         return "(not set)"

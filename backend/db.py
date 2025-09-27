@@ -93,14 +93,20 @@ def create_user(name: str, email: str, embedding: List[float]):
             "_id": user_id,
             "name": name,
             "email": email,
-            "faces": [{"embedding": embedding}]
+            "faces": [{"embedding": embedding}],
+            "created_at": datetime.now(timezone.utc)
         }
         logger.info(f"[DEV MODE] Created mock user: {user_id} ({name})")
         return user_id
     
     _ensure_db()
     users = _db["users"]
-    doc = {"name": name, "email": email, "faces": [{"embedding": embedding}]}
+    doc = {
+        "name": name, 
+        "email": email, 
+        "faces": [{"embedding": embedding}],
+        "created_at": datetime.now(timezone.utc)
+    }
     try:
         res = users.insert_one(doc)
         return str(res.inserted_id)
@@ -523,3 +529,124 @@ def is_session_active(session_id: str) -> bool:
         return True
     now = __import__("datetime").datetime.now(__import__("datetime").timezone.utc)
     return expires_at > now
+
+
+def get_user_sessions(user_id: str):
+    """Get all active sessions for a specific user."""
+    if DEV_MODE_NO_DB:
+        user_sessions = []
+        for sid, session in _mock_sessions.items():
+            if session["user_id"] == user_id and not session.get("revoked", False):
+                expires_at = session.get("expires_at")
+                if expires_at is None or expires_at > datetime.now(timezone.utc):
+                    user_sessions.append({
+                        "session_id": sid,
+                        "issued_at": session["issued_at"].isoformat(),
+                        "expires_at": expires_at.isoformat() if expires_at else None,
+                        "is_current": False,  # We could track this better
+                    })
+        return user_sessions
+    
+    _ensure_db()
+    sessions = _db["sessions"]
+    try:
+        now = datetime.now(timezone.utc)
+        cursor = sessions.find({
+            "user_id": user_id,
+            "revoked": False,
+            "$or": [
+                {"expires_at": None},
+                {"expires_at": {"$gt": now}}
+            ]
+        }).sort("issued_at", -1)
+        
+        result = []
+        for doc in cursor:
+            result.append({
+                "session_id": doc["_id"],
+                "issued_at": doc["issued_at"].isoformat(),
+                "expires_at": doc["expires_at"].isoformat() if doc["expires_at"] else None,
+                "is_current": False,  # We could track this if we had request context
+            })
+        return result
+    except (
+        pymongo_errors.ServerSelectionTimeoutError,
+        pymongo_errors.AutoReconnect,
+        pymongo_errors.PyMongoError,
+    ) as e:
+        logger.exception("DB unavailable during get_user_sessions")
+        raise DBUnavailable(str(e))
+
+
+def revoke_all_user_sessions(user_id: str, exclude_session_id: str = None):
+    """Revoke all sessions for a user, optionally excluding one session."""
+    if DEV_MODE_NO_DB:
+        revoked_count = 0
+        for sid, session in _mock_sessions.items():
+            if (session["user_id"] == user_id and 
+                not session.get("revoked", False) and 
+                sid != exclude_session_id):
+                session["revoked"] = True
+                revoked_count += 1
+        return revoked_count
+    
+    _ensure_db()
+    sessions = _db["sessions"]
+    try:
+        query = {"user_id": user_id, "revoked": False}
+        if exclude_session_id:
+            query["_id"] = {"$ne": exclude_session_id}
+        
+        res = sessions.update_many(query, {"$set": {"revoked": True}})
+        return res.modified_count
+    except (
+        pymongo_errors.ServerSelectionTimeoutError,
+        pymongo_errors.AutoReconnect,
+        pymongo_errors.PyMongoError,
+    ) as e:
+        logger.exception("DB unavailable during revoke_all_user_sessions")
+        raise DBUnavailable(str(e))
+
+
+def get_user_logs(user_id: str, limit: int = 50):
+    """Get authentication/recognition history for a specific user."""
+    if DEV_MODE_NO_DB:
+        user_logs = []
+        for log in reversed(_mock_logs):
+            if log["user_id"] == user_id:
+                # Format the log for frontend
+                formatted_log = {
+                    "_id": log["_id"],
+                    "action": log["action"],
+                    "confidence": log["confidence"],
+                    "timestamp": log["timestamp"].isoformat(),
+                    "metadata": log.get("metadata", {}),
+                    "success": log["action"] in ["signup", "login", "verify", "enroll"] and (log.get("confidence") or 0) >= 0.7
+                }
+                user_logs.append(formatted_log)
+                if len(user_logs) >= limit:
+                    break
+        return user_logs
+    
+    _ensure_db()
+    logs = _db["logs"]
+    try:
+        cursor = logs.find({"user_id": user_id}).sort("timestamp", -1).limit(limit)
+        result = []
+        for entry in cursor:
+            entry["_id"] = str(entry["_id"])
+            entry["timestamp"] = entry["timestamp"].isoformat()
+            # Add success indicator based on action and confidence
+            entry["success"] = (
+                entry["action"] in ["signup", "login", "verify", "enroll"] and 
+                (entry.get("confidence") or 0) >= 0.7
+            )
+            result.append(entry)
+        return result
+    except (
+        pymongo_errors.ServerSelectionTimeoutError,
+        pymongo_errors.AutoReconnect,
+        pymongo_errors.PyMongoError,
+    ) as e:
+        logger.exception("DB unavailable during get_user_logs")
+        raise DBUnavailable(str(e))

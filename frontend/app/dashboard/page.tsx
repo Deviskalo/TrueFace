@@ -86,14 +86,28 @@ export default function Dashboard() {
               <span className="text-xl font-bold text-gray-900">TrueFace</span>
               <span className="text-sm text-gray-500">Dashboard</span>
             </div>
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-600">User: {userId}</span>
-              <button
-                onClick={handleLogout}
-                className="text-red-600 hover:text-red-800 font-medium"
-              >
-                Logout
-              </button>
+            <div className="flex items-center space-x-6">
+              <nav className="hidden md:flex space-x-6">
+                <span className="text-blue-600 font-medium">Dashboard</span>
+                <Link href="/profile" className="text-gray-600 hover:text-blue-600 font-medium">
+                  Profile
+                </Link>
+                <Link href="/sessions" className="text-gray-600 hover:text-blue-600 font-medium">
+                  Sessions
+                </Link>
+                <Link href="/history" className="text-gray-600 hover:text-blue-600 font-medium">
+                  History
+                </Link>
+              </nav>
+              <div className="flex items-center space-x-4">
+                <span className="text-sm text-gray-600">User: {userId}</span>
+                <button
+                  onClick={handleLogout}
+                  className="text-red-600 hover:text-red-800 font-medium"
+                >
+                  Logout
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -151,13 +165,49 @@ export default function Dashboard() {
 
           <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
             <div className="text-3xl mb-4">📊</div>
-            <h3 className="text-lg font-semibold mb-2">Activity Logs</h3>
+            <h3 className="text-lg font-semibold mb-2">Activity History</h3>
             <p className="text-gray-600 mb-4">
-              View your authentication history and activity.
+              View your authentication history and activity logs.
             </p>
-            <button className="w-full bg-gray-600 text-white py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors">
-              View Logs
-            </button>
+            <Link href="/history" className="w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors block text-center">
+              View History
+            </Link>
+          </div>
+        </div>
+
+        {/* New Quick Access Cards */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+            <div className="text-3xl mb-4">👤</div>
+            <h3 className="text-lg font-semibold mb-2">User Profile</h3>
+            <p className="text-gray-600 mb-4">
+              View and manage your account information and settings.
+            </p>
+            <Link href="/profile" className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors block text-center">
+              View Profile
+            </Link>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+            <div className="text-3xl mb-4">🛡️</div>
+            <h3 className="text-lg font-semibold mb-2">Session Management</h3>
+            <p className="text-gray-600 mb-4">
+              Manage active sessions and secure your account.
+            </p>
+            <Link href="/sessions" className="w-full bg-orange-600 text-white py-2 px-4 rounded-lg hover:bg-orange-700 transition-colors block text-center">
+              Manage Sessions
+            </Link>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+            <div className="text-3xl mb-4">🔍</div>
+            <h3 className="text-lg font-semibold mb-2">Recognition Analytics</h3>
+            <p className="text-gray-600 mb-4">
+              View detailed analytics of your face recognition performance.
+            </p>
+            <Link href="/history" className="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors block text-center">
+              View Analytics
+            </Link>
           </div>
         </div>
 
