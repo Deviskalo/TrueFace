@@ -1,0 +1,622 @@
+import DocsLayout from '@/components/DocsLayout';
+import Link from 'next/link';
+
+const components = [
+  {
+    name: 'CameraCapture',
+    description: 'Handles camera access and image capture for face recognition',
+    category: 'Core',
+    complexity: 'intermediate',
+  },
+  {
+    name: 'AuthLayout',
+    description: 'Shared layout component for authentication pages',
+    category: 'Layout',
+    complexity: 'beginner',
+  },
+  {
+    name: 'useAuth',
+    description: 'Authentication state management hook',
+    category: 'Hooks',
+    complexity: 'intermediate',
+  },
+  {
+    name: 'useApi',
+    description: 'Generic API request hook with error handling',
+    category: 'Hooks',
+    complexity: 'beginner',
+  },
+];
+
+function ComplexityBadge({ complexity }: { complexity: string }) {
+  const colors = {
+    beginner: 'bg-green-100 text-green-800',
+    intermediate: 'bg-yellow-100 text-yellow-800',
+    advanced: 'bg-red-100 text-red-800',
+  };
+
+  return (
+    <span className={`px-2 py-1 text-xs font-medium rounded ${colors[complexity as keyof typeof colors]}`}>
+      {complexity}
+    </span>
+  );
+}
+
+export default function ComponentsPage() {
+  return (
+    <DocsLayout
+      title="Components"
+      description="Frontend component documentation and usage examples"
+    >
+      <div className="space-y-8">
+        ## Overview
+
+        TrueFace provides a set of reusable React components and hooks to build face recognition authentication interfaces. All components are built with TypeScript and styled with Tailwind CSS.
+
+        ### Component Categories
+
+        - **Core Components**: Essential UI components for face recognition
+        - **Layout Components**: Shared layouts and page structures  
+        - **Hooks**: Custom React hooks for state management and API calls
+        - **Utilities**: Helper functions and utilities
+
+        ### Design System
+
+        All components follow consistent design principles:
+        - **Accessibility**: WCAG 2.1 AA compliance
+        - **Responsive**: Mobile-first design approach
+        - **Theme**: Consistent color palette and spacing
+        - **TypeScript**: Full type safety and IntelliSense support
+
+        ## Component Library
+
+        <div className="not-prose">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-8">
+            {components.map((component) => (
+              <div key={component.name} className="bg-white border border-gray-200 rounded-lg p-6">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-lg font-semibold text-gray-900">{component.name}</h3>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs text-gray-500">{component.category}</span>
+                    <ComplexityBadge complexity={component.complexity} />
+                  </div>
+                </div>
+                <p className="text-gray-600">{component.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        ## CameraCapture
+
+        The `CameraCapture` component handles camera access and image capture for face recognition authentication.
+
+        ### Basic Usage
+
+        ```tsx
+        import CameraCapture from '@/components/CameraCapture';
+
+        function SignupPage() {
+          const handleCapture = (imageData: string) => {
+            console.log('Captured image:', imageData);
+            // Process the captured image
+          };
+
+          const handleError = (error: string) => {
+            console.error('Camera error:', error);
+            // Handle camera errors
+          };
+
+          return (
+            <CameraCapture
+              onCapture={handleCapture}
+              onError={handleError}
+              width={640}
+              height={480}
+            />
+          );
+        }
+        ```
+
+        ### Props
+
+        | Prop | Type | Default | Description |
+        |------|------|---------|-------------|
+        | `onCapture` | `(imageData: string) => void` | - | Callback when image is captured |
+        | `onError` | `(error: string) => void` | - | Callback for camera errors |
+        | `width` | `number` | `640` | Camera width in pixels |
+        | `height` | `number` | `480` | Camera height in pixels |
+        | `facingMode` | `'user' \| 'environment'` | `'user'` | Camera facing mode |
+        | `autoCapture` | `boolean` | `false` | Enable automatic capture |
+        | `captureDelay` | `number` | `3000` | Delay for auto capture (ms) |
+
+        ### TypeScript Interface
+
+        ```tsx
+        interface CameraCaptureProps {
+          onCapture: (imageData: string) => void;
+          onError?: (error: string) => void;
+          width?: number;
+          height?: number;
+          facingMode?: 'user' | 'environment';
+          autoCapture?: boolean;
+          captureDelay?: number;
+        }
+        ```
+
+        ### Advanced Usage
+
+        ```tsx
+        import { useState } from 'react';
+        import CameraCapture from '@/components/CameraCapture';
+
+        function AdvancedCameraExample() {
+          const [isLoading, setIsLoading] = useState(false);
+          const [error, setError] = useState<string | null>(null);
+
+          const handleCapture = async (imageData: string) => {
+            setIsLoading(true);
+            setError(null);
+
+            try {
+              const response = await fetch('/api/auth/signup', {
+                method: 'POST',
+                body: createFormData(imageData),
+              });
+
+              if (!response.ok) {
+                throw new Error('Signup failed');
+              }
+
+              const data = await response.json();
+              console.log('Signup successful:', data);
+            } catch (err) {
+              setError(err instanceof Error ? err.message : 'Unknown error');
+            } finally {
+              setIsLoading(false);
+            }
+          };
+
+          const handleError = (cameraError: string) => {
+            setError(`Camera error: ${cameraError}`);
+          };
+
+          return (
+            <div className="space-y-4">
+              <CameraCapture
+                onCapture={handleCapture}
+                onError={handleError}
+                width={800}
+                height={600}
+                facingMode="user"
+              />
+              
+              {isLoading && (
+                <div className="text-center text-blue-600">
+                  Processing image...
+                </div>
+              )}
+              
+              {error && (
+                <div className="text-center text-red-600">
+                  Error: {error}
+                </div>
+              )}
+            </div>
+          );
+        }
+        ```
+
+        ### Camera States
+
+        The component handles various camera states:
+
+        - **Loading**: Initial camera access
+        - **Ready**: Camera is active and ready
+        - **Capturing**: Taking a photo
+        - **Error**: Camera access denied or failed
+
+        ### Browser Compatibility
+
+        - **Chrome**: Full support
+        - **Firefox**: Full support
+        - **Safari**: Full support
+        - **Edge**: Full support
+        - **Mobile browsers**: Supported with HTTPS
+
+        ## AuthLayout
+
+        The `AuthLayout` component provides a consistent layout for authentication pages.
+
+        ### Basic Usage
+
+        ```tsx
+        import AuthLayout from '@/components/AuthLayout';
+
+        function LoginPage() {
+          return (
+            <AuthLayout title="Login to TrueFace">
+              <form className="space-y-6">
+                {/* Your login form */}
+              </form>
+            </AuthLayout>
+          );
+        }
+        ```
+
+        ### Props
+
+        | Prop | Type | Default | Description |
+        |------|------|---------|-------------|
+        | `title` | `string` | - | Page title |
+        | `subtitle` | `string` | - | Optional subtitle |
+        | `children` | `ReactNode` | - | Page content |
+        | `showLogo` | `boolean` | `true` | Show TrueFace logo |
+        | `backgroundPattern` | `boolean` | `true` | Show background pattern |
+
+        ### Features
+
+        - **Responsive Design**: Adapts to all screen sizes
+        - **Loading States**: Built-in loading indicators
+        - **Error Handling**: Error message display
+        - **Accessibility**: ARIA labels and keyboard navigation
+        - **SEO Optimized**: Proper heading structure
+
+        ## useAuth Hook
+
+        The `useAuth` hook manages authentication state and provides auth-related functions.
+
+        ### Basic Usage
+
+        ```tsx
+        import { useAuth } from '@/hooks/useAuth';
+
+        function ProtectedComponent() {
+          const { user, isLoading, login, logout } = useAuth();
+
+          if (isLoading) {
+            return <div>Loading...</div>;
+          }
+
+          if (!user) {
+            return <div>Please login to continue</div>;
+          }
+
+          return (
+            <div>
+              <h1>Welcome, {user.name}!</h1>
+              <button onClick={logout}>Logout</button>
+            </div>
+          );
+        }
+        ```
+
+        ### Return Values
+
+        | Property | Type | Description |
+        |----------|------|-------------|
+        | `user` | `User \| null` | Current authenticated user |
+        | `isLoading` | `boolean` | Loading state |
+        | `error` | `string \| null` | Authentication error |
+        | `login` | `(imageData: string) => Promise<void>` | Login with face image |
+        | `signup` | `(data: SignupData) => Promise<void>` | Sign up new user |
+        | `logout` | `() => void` | Logout current user |
+        | `refreshProfile` | `() => Promise<void>` | Refresh user profile |
+
+        ### TypeScript Interfaces
+
+        ```tsx
+        interface User {
+          user_id: string;
+          name: string;
+          email: string;
+          face_count: number;
+          created_at: string;
+        }
+
+        interface SignupData {
+          name: string;
+          email: string;
+          imageData: string;
+        }
+
+        interface AuthContextType {
+          user: User | null;
+          isLoading: boolean;
+          error: string | null;
+          login: (imageData: string) => Promise<void>;
+          signup: (data: SignupData) => Promise<void>;
+          logout: () => void;
+          refreshProfile: () => Promise<void>;
+        }
+        ```
+
+        ### Advanced Usage
+
+        ```tsx
+        import { useAuth } from '@/hooks/useAuth';
+        import { useRouter } from 'next/navigation';
+        import { useEffect } from 'react';
+
+        function AuthenticatedPage() {
+          const { user, isLoading, error, logout } = useAuth();
+          const router = useRouter();
+
+          useEffect(() => {
+            if (!isLoading && !user) {
+              router.push('/login');
+            }
+          }, [user, isLoading, router]);
+
+          const handleLogout = async () => {
+            await logout();
+            router.push('/');
+          };
+
+          if (isLoading) {
+            return <LoadingSpinner />;
+          }
+
+          if (error) {
+            return <ErrorMessage error={error} />;
+          }
+
+          if (!user) {
+            return null; // Redirecting...
+          }
+
+          return (
+            <div>
+              <UserProfile user={user} />
+              <button onClick={handleLogout}>
+                Logout
+              </button>
+            </div>
+          );
+        }
+        ```
+
+        ## useApi Hook
+
+        The `useApi` hook provides a simple interface for making API requests with built-in error handling and loading states.
+
+        ### Basic Usage
+
+        ```tsx
+        import { useApi } from '@/hooks/useApi';
+
+        function UserProfile() {
+          const { data, error, isLoading, refetch } = useApi('/api/user/profile');
+
+          if (isLoading) return <div>Loading profile...</div>;
+          if (error) return <div>Error: {error.message}</div>;
+
+          return (
+            <div>
+              <h1>{data?.profile?.name}</h1>
+              <p>{data?.profile?.email}</p>
+              <button onClick={refetch}>Refresh</button>
+            </div>
+          );
+        }
+        ```
+
+        ### Return Values
+
+        | Property | Type | Description |
+        |----------|------|-------------|
+        | `data` | `T \| null` | Response data |
+        | `error` | `Error \| null` | Request error |
+        | `isLoading` | `boolean` | Loading state |
+        | `refetch` | `() => Promise<void>` | Refetch data |
+
+        ### Options
+
+        ```tsx
+        interface UseApiOptions {
+          method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+          body?: any;
+          headers?: Record<string, string>;
+          enabled?: boolean;
+          onSuccess?: (data: any) => void;
+          onError?: (error: Error) => void;
+        }
+        ```
+
+        ### Advanced Usage
+
+        ```tsx
+        import { useApi } from '@/hooks/useApi';
+        import { useState } from 'react';
+
+        function UserManagement() {
+          const [userId, setUserId] = useState<string | null>(null);
+          
+          const { data: users, isLoading, error } = useApi('/api/admin/users', {
+            headers: {
+              'Authorization': `Bearer ${adminToken}`,
+            },
+            onError: (error) => {
+              console.error('Failed to fetch users:', error);
+            },
+          });
+
+          const { data: userDetails, refetch: refetchUser } = useApi(
+            userId ? `/api/admin/users/${userId}` : null,
+            {
+              enabled: !!userId,
+            }
+          );
+
+          return (
+            <div>
+              {isLoading ? (
+                <Loading />
+              ) : error ? (
+                <Error message={error.message} />
+              ) : (
+                <UserList
+                  users={users?.users}
+                  onSelectUser={setUserId}
+                />
+              )}
+              
+              {userDetails && (
+                <UserDetails
+                  user={userDetails}
+                  onUpdate={refetchUser}
+                />
+              )}
+            </div>
+          );
+        }
+        ```
+
+        ## Best Practices
+
+        ### Component Composition
+
+        ```tsx
+        // Good: Compose smaller components
+        function AuthPage() {
+          return (
+            <AuthLayout title="Sign Up">
+              <CameraCapture onCapture={handleCapture} />
+              <AuthForm onSubmit={handleSubmit} />
+            </AuthLayout>
+          );
+        }
+
+        // Avoid: Large monolithic components
+        function MassiveAuthComponent() {
+          // 500+ lines of mixed logic
+        }
+        ```
+
+        ### Error Handling
+
+        ```tsx
+        // Good: Proper error boundaries
+        function CameraWrapper() {
+          const [error, setError] = useState<string | null>(null);
+
+          return (
+            <ErrorBoundary fallback={<ErrorMessage />}>
+              <CameraCapture
+                onError={setError}
+                onCapture={handleCapture}
+              />
+              {error && <ErrorAlert message={error} />}
+            </ErrorBoundary>
+          );
+        }
+        ```
+
+        ### Performance Optimization
+
+        ```tsx
+        // Good: Memoize expensive operations
+        const CameraComponent = memo(({ onCapture, ...props }) => {
+          const processedProps = useMemo(() => ({
+            ...props,
+            constraints: {
+              video: {
+                width: props.width,
+                height: props.height,
+                facingMode: props.facingMode,
+              },
+            },
+          }), [props.width, props.height, props.facingMode]);
+
+          return <CameraCapture {...processedProps} onCapture={onCapture} />;
+        });
+        ```
+
+        ### Accessibility
+
+        ```tsx
+        // Good: ARIA labels and keyboard support
+        function AccessibleCamera({ onCapture }) {
+          return (
+            <div role="region" aria-label="Face recognition camera">
+              <CameraCapture
+                onCapture={onCapture}
+                aria-describedby="camera-instructions"
+              />
+              <div id="camera-instructions" className="sr-only">
+                Position your face in the camera frame and click capture
+              </div>
+            </div>
+          );
+        }
+        ```
+
+        ## Customization
+
+        ### Theming
+
+        Override default styles using CSS custom properties:
+
+        ```css
+        :root {
+          --trueface-primary: #3b82f6;
+          --trueface-secondary: #6b7280;
+          --trueface-success: #10b981;
+          --trueface-error: #ef4444;
+          --trueface-radius: 0.5rem;
+        }
+        ```
+
+        ### Custom Components
+
+        Create custom components by extending the base components:
+
+        ```tsx
+        interface CustomCameraCaptureProps extends CameraCaptureProps {
+          brand?: string;
+          customStyles?: string;
+        }
+
+        function CustomCameraCapture({ brand, customStyles, ...props }: CustomCameraCaptureProps) {
+          return (
+            <div className={`custom-camera ${customStyles}`}>
+              {brand && <div className="camera-brand">{brand}</div>}
+              <CameraCapture {...props} />
+            </div>
+          );
+        }
+        ```
+
+        ## Next Steps
+
+        <div className="not-prose">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-8">
+            <Link
+              href="/docs/api-reference"
+              className="block bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-all hover:border-blue-200 group"
+            >
+              <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-900 mb-2">
+                API Reference
+              </h3>
+              <p className="text-gray-600 group-hover:text-gray-700">
+                Learn about the API endpoints these components interact with.
+              </p>
+            </Link>
+
+            <Link
+              href="/docs/deployment"
+              className="block bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-all hover:border-blue-200 group"
+            >
+              <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-900 mb-2">
+                Deployment
+              </h3>
+              <p className="text-gray-600 group-hover:text-gray-700">
+                Deploy your TrueFace application to production.
+              </p>
+            </Link>
+          </div>
+        </div>
+      </div>
+    </DocsLayout>
+  );
+}

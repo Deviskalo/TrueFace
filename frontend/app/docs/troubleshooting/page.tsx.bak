@@ -1,0 +1,922 @@
+import DocsLayout from '@/components/DocsLayout';
+import Link from 'next/link';
+
+const issues = [
+  {
+    category: 'Installation',
+    problems: [
+      {
+        title: 'Python Version Error',
+        symptoms: 'Python version 3.11+ required',
+        severity: 'high',
+      },
+      {
+        title: 'Node.js Version Error', 
+        symptoms: 'Node.js 18.x required for Next.js',
+        severity: 'high',
+      },
+      {
+        title: 'Package Installation Failures',
+        symptoms: 'pip install or npm install fails',
+        severity: 'medium',
+      },
+    ],
+  },
+  {
+    category: 'Runtime',
+    problems: [
+      {
+        title: 'Database Connection Failed',
+        symptoms: 'Database unavailable. Please start MongoDB',
+        severity: 'high',
+      },
+      {
+        title: 'Face Recognition Errors',
+        symptoms: 'No face detected or Invalid image format',
+        severity: 'medium',
+      },
+      {
+        title: 'Rate Limiting Issues',
+        symptoms: 'Rate limit exceeded. Please try again later',
+        severity: 'low',
+      },
+    ],
+  },
+  {
+    category: 'Docker',
+    problems: [
+      {
+        title: 'Container Build Failures',
+        symptoms: 'Docker build fails or containers won\'t start',
+        severity: 'high',
+      },
+      {
+        title: 'Port Conflicts',
+        symptoms: 'Port already in use',
+        severity: 'medium',
+      },
+      {
+        title: 'Volume Mount Issues',
+        symptoms: 'Files not syncing between host and container',
+        severity: 'medium',
+      },
+    ],
+  },
+];
+
+function SeverityBadge({ severity }: { severity: string }) {
+  const colors = {
+    low: 'bg-yellow-100 text-yellow-800',
+    medium: 'bg-orange-100 text-orange-800',
+    high: 'bg-red-100 text-red-800',
+  };
+
+  return (
+    <span className={`px-2 py-1 text-xs font-medium rounded ${colors[severity as keyof typeof colors]}`}>
+      {severity}
+    </span>
+  );
+}
+
+export default function TroubleshootingPage() {
+  return (
+    <DocsLayout
+      title="Troubleshooting"
+      description="Common issues and their solutions for TrueFace deployment and development"
+    >
+      <div className="space-y-8">
+        ## Overview
+
+        This troubleshooting guide covers common issues you might encounter when installing, developing, or deploying TrueFace. Solutions are organized by category and include step-by-step instructions.
+
+        ### Quick Diagnosis
+
+        <div className="not-prose">
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
+            <h3 className="text-lg font-medium text-blue-900 mb-3">Before You Start</h3>
+            <ul className="text-blue-800 space-y-2">
+              <li>• Check system requirements: Python 3.11+, Node.js 18.x</li>
+              <li>• Verify network connectivity and firewall settings</li>
+              <li>• Review error messages in terminal output</li>
+              <li>• Check Docker and container status if using Docker</li>
+              <li>• Try development mode: <code className="bg-blue-100 px-2 py-1 rounded text-sm">DEV_MODE_NO_DB=true</code></li>
+            </ul>
+          </div>
+        </div>
+
+        ### Issue Categories
+
+        <div className="not-prose">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-8">
+            {issues.map((category) => (
+              <div key={category.category} className="bg-white border border-gray-200 rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">{category.category}</h3>
+                <div className="space-y-3">
+                  {category.problems.map((problem) => (
+                    <div key={problem.title} className="border-l-4 border-gray-200 pl-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <h4 className="text-sm font-medium text-gray-900">{problem.title}</h4>
+                        <SeverityBadge severity={problem.severity} />
+                      </div>
+                      <p className="text-xs text-gray-600">{problem.symptoms}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        ## Installation Issues
+
+        ### Python Version Error
+
+        **Problem:** `Python version 3.11+ required`
+
+        **Symptoms:**
+        - Error during backend setup
+        - Package installation failures
+        - Import errors in Python code
+
+        **Solutions:**
+
+        **Check Current Version:**
+        ```bash
+        python --version
+        python3 --version
+        ```
+
+        **Install Python 3.11+ (Ubuntu/Debian):**
+        ```bash
+        sudo apt update
+        sudo apt install software-properties-common
+        sudo add-apt-repository ppa:deadsnakes/ppa
+        sudo apt install python3.11 python3.11-venv python3.11-dev
+        ```
+
+        **Install Python 3.11+ (macOS):**
+        ```bash
+        # Using Homebrew
+        brew install python@3.11
+
+        # Using pyenv (recommended)
+        pyenv install 3.11.0
+        pyenv global 3.11.0
+        ```
+
+        **Use Specific Version:**
+        ```bash
+        # Create virtual environment with specific Python version
+        python3.11 -m venv venv
+        source venv/bin/activate
+        python --version  # Should show 3.11.x
+        ```
+
+        ### Node.js Version Error
+
+        **Problem:** `Node.js 18.x required for Next.js`
+
+        **Symptoms:**
+        - Frontend build failures
+        - npm install errors
+        - Next.js compatibility warnings
+
+        **Solutions:**
+
+        **Install Node Version Manager:**
+        ```bash
+        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+        source ~/.bashrc
+        ```
+
+        **Install and Use Node.js 18:**
+        ```bash
+        nvm install 18
+        nvm use 18
+        nvm alias default 18
+        node --version  # Should show v18.x.x
+        ```
+
+        **Alternative: Direct Installation (Ubuntu):**
+        ```bash
+        curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+        sudo apt-get install -y nodejs
+        ```
+
+        ### Package Installation Failures
+
+        **Problem:** `pip install` or `npm install` fails
+
+        **Symptoms:**
+        - Network timeout errors
+        - Permission denied errors
+        - Corrupted package cache
+
+        **Solutions:**
+
+        **Clear Package Caches:**
+        ```bash
+        # Clear pip cache
+        pip cache purge
+        pip install --no-cache-dir -r requirements.txt
+
+        # Clear npm cache
+        npm cache clean --force
+        rm -rf node_modules package-lock.json
+        npm install
+        ```
+
+        **Fix Permissions (Linux/macOS):**
+        ```bash
+        # Fix npm permissions
+        sudo chown -R $(whoami) ~/.npm
+        sudo chown -R $(whoami) /usr/local/lib/node_modules
+
+        # Use user-level pip
+        pip install --user -r requirements.txt
+        ```
+
+        **Use Alternative Package Managers:**
+        ```bash
+        # Try yarn instead of npm
+        npm install -g yarn
+        yarn install
+
+        # Try conda for Python packages
+        conda install --file requirements.txt
+        ```
+
+        ## Runtime Issues
+
+        ### Database Connection Failed
+
+        **Problem:** `Database unavailable. Please start MongoDB or check MONGO_URI`
+
+        **Symptoms:**
+        - Backend fails to start
+        - API requests return 500 errors
+        - Health check shows database unreachable
+
+        **Solutions:**
+
+        **1. Use Development Mode (Quick Fix):**
+        ```bash
+        DEV_MODE_NO_DB=true uvicorn main:app --reload
+        ```
+
+        **2. Install Local MongoDB:**
+        ```bash
+        # Ubuntu/Debian
+        sudo apt install mongodb
+        sudo systemctl start mongodb
+        sudo systemctl enable mongodb
+        sudo systemctl status mongodb
+
+        # macOS
+        brew install mongodb-community
+        brew services start mongodb-community
+        brew services list | grep mongodb
+        ```
+
+        **3. Use Docker MongoDB:**
+        ```bash
+        docker run -d -p 27017:27017 --name mongo mongo:6.0
+        docker ps  # Verify container is running
+        ```
+
+        **4. Check Connection String:**
+        ```bash
+        # Verify MONGO_URI format
+        export MONGO_URI="mongodb://localhost:27017/trueface_dev"
+        echo $MONGO_URI
+
+        # Test connection
+        mongosh $MONGO_URI --eval "db.runCommand('ping')"
+        ```
+
+        **5. Check Network Connectivity:**
+        ```bash
+        # Test MongoDB port
+        telnet localhost 27017
+
+        # Check firewall rules
+        sudo ufw status
+        ```
+
+        ### Face Recognition Errors
+
+        **Problem:** `No face detected` or `Invalid image format`
+
+        **Symptoms:**
+        - Signup/login fails with face errors
+        - Camera capture doesn't work
+        - Image upload rejected
+
+        **Solutions:**
+
+        **1. Check Image Requirements:**
+        - **Supported formats**: JPEG, PNG, WebP, GIF
+        - **Maximum size**: 10MB
+        - **Face visibility**: Clear, well-lit face
+        - **Face position**: Centered, not at extreme angles
+
+        **2. Test with Known Good Image:**
+        ```bash
+        # Use a clear, well-lit face photo
+        curl -X POST http://localhost:8000/api/auth/signup \
+          -F "image=@clear_face_photo.jpg" \
+          -F "name=Test User" \
+          -F "email=test@example.com"
+        ```
+
+        **3. Enable Test Mode (Relaxed Validation):**
+        ```bash
+        TEST_MODE=true uvicorn main:app --reload
+        ```
+
+        **4. Check Camera Permissions:**
+        - **HTTPS Required**: Browsers block camera on HTTP in production
+        - **User Permission**: Browser will prompt for camera access
+        - **Supported Browsers**: Chrome, Firefox, Safari, Edge
+        - **Development**: localhost works without HTTPS
+
+        **5. Debug Image Processing:**
+        ```python
+        # Check image in Python
+        from PIL import Image
+        import io
+
+        # Test image opening
+        with open('test_image.jpg', 'rb') as f:
+            image_data = f.read()
+            image = Image.open(io.BytesIO(image_data))
+            print(f"Image format: {image.format}")
+            print(f"Image size: {image.size}")
+        ```
+
+        ### Rate Limiting Issues
+
+        **Problem:** `Rate limit exceeded. Please try again later.`
+
+        **Symptoms:**
+        - API requests rejected with 429 status
+        - Authentication fails after multiple attempts
+        - Upload operations blocked
+
+        **Solutions:**
+
+        **1. Disable Rate Limiting (Development):**
+        ```bash
+        RATE_LIMIT_ENABLED=false uvicorn main:app --reload
+        ```
+
+        **2. Adjust Rate Limits:**
+        ```bash
+        # Increase limits for development
+        export RATE_LIMIT_AUTH=50/minute
+        export RATE_LIMIT_UPLOAD=20/minute
+        export RATE_LIMIT_DEFAULT=200/minute
+        ```
+
+        **3. Check IP Address (Behind Proxy):**
+        ```bash
+        # Ensure X-Forwarded-For header is correct
+        curl -H "X-Forwarded-For: 192.168.1.100" http://localhost:8000/api/auth/login
+        ```
+
+        **4. Clear Redis Cache:**
+        ```bash
+        # If using Redis for rate limiting
+        redis-cli FLUSHALL
+        docker-compose restart redis
+        ```
+
+        ## Docker Issues
+
+        ### Container Build Failures
+
+        **Problem:** Docker build fails or containers won't start
+
+        **Symptoms:**
+        - Build process stops with errors
+        - Containers exit immediately
+        - Image not found errors
+
+        **Solutions:**
+
+        **1. Check Docker Status:**
+        ```bash
+        docker info
+        docker-compose version
+        systemctl status docker
+        ```
+
+        **2. Build with Verbose Output:**
+        ```bash
+        docker-compose build --no-cache --progress=plain
+        docker build -f backend/Dockerfile.prod -t trueface-backend:latest backend/ --no-cache
+        ```
+
+        **3. Check Logs:**
+        ```bash
+        docker-compose logs backend
+        docker-compose logs frontend
+        docker logs <container_id>
+        ```
+
+        **4. Resource Limits:**
+        ```bash
+        # Check available resources
+        docker system df
+        df -h
+        free -h
+
+        # Increase Docker memory (Docker Desktop)
+        # Settings → Resources → Advanced → Memory: 4GB+
+        ```
+
+        **5. Clean Docker System:**
+        ```bash
+        # Remove unused containers, networks, images
+        docker system prune -a
+
+        # Remove all stopped containers
+        docker container prune
+
+        # Remove unused images
+        docker image prune -a
+        ```
+
+        ### Port Conflicts
+
+        **Problem:** `Port already in use`
+
+        **Symptoms:**
+        - Container fails to bind to port
+        - Address already in use errors
+        - Service unreachable
+
+        **Solutions:**
+
+        **1. Find Process Using Port:**
+        ```bash
+        # Check what's using the port
+        lsof -i :3000
+        lsof -i :8000
+        netstat -tulpn | grep :3000
+        ```
+
+        **2. Kill Process:**
+        ```bash
+        # Kill process by PID
+        kill -9 <PID>
+
+        # Kill process by port (Linux)
+        sudo fuser -k 3000/tcp
+        ```
+
+        **3. Use Different Ports:**
+        ```bash
+        # Frontend
+        PORT=3001 npm run dev
+
+        # Backend
+        uvicorn main:app --port 8001
+
+        # Docker Compose
+        # Edit docker-compose.yml port mappings
+        ```
+
+        **4. Check Docker Port Mappings:**
+        ```bash
+        docker port <container_name>
+        docker-compose ps
+        ```
+
+        ### Volume Mount Issues
+
+        **Problem:** Files not syncing between host and container
+
+        **Symptoms:**
+        - Changes not reflected in container
+        - File not found in container
+        - Permission denied errors
+
+        **Solutions:**
+
+        **1. Check Mount Paths:**
+        ```yaml
+        # docker-compose.yml
+        volumes:
+          - ./backend:/app  # Host path : Container path
+          - ./frontend:/frontend
+        ```
+
+        **2. Fix File Permissions (Linux):**
+        ```bash
+        # Fix ownership
+        sudo chown -R $USER:$USER .
+        chmod -R 755 .
+
+        # Check user ID in container
+        docker-compose exec backend id
+        ```
+
+        **3. Use Absolute Paths:**
+        ```yaml
+        volumes:
+          - /home/user/project/backend:/app
+        ```
+
+        **4. SELinux Issues (RHEL/CentOS):**
+        ```bash
+        # Add SELinux label
+        volumes:
+          - ./backend:/app:Z
+        ```
+
+        ## Performance Issues
+
+        ### Slow API Responses
+
+        **Problem:** API requests taking too long
+
+        **Symptoms:**
+        - Timeout errors
+        - Slow face recognition
+        - High response times
+
+        **Debugging:**
+        ```bash
+        # Measure response times
+        curl -w "@curl-format.txt" http://localhost:8000/api/user/profile
+
+        # curl-format.txt content:
+        #      time_namelookup:  %{time_namelookup}\n
+        #         time_connect:  %{time_connect}\n  
+        #      time_appconnect:  %{time_appconnect}\n
+        #         time_total:    %{time_total}\n
+        ```
+
+        **Solutions:**
+
+        **1. Enable Performance Monitoring:**
+        ```bash
+        METRICS_ENABLED=true uvicorn main:app --reload
+        # Check metrics at http://localhost:8000/metrics
+        ```
+
+        **2. Database Optimization:**
+        ```python
+        # Add indexes for frequent queries
+        db.users.create_index([("email", 1)])
+        db.logs.create_index([("user_id", 1), ("timestamp", -1)])
+        db.sessions.create_index([("expires_at", 1)])
+        ```
+
+        **3. Enable Caching:**
+        ```bash
+        # Use Redis for caching
+        REDIS_URL=redis://localhost:6379
+        ```
+
+        **4. Optimize Images:**
+        - Compress images before upload
+        - Use appropriate image formats
+        - Resize large images client-side
+
+        ### High Memory Usage
+
+        **Problem:** Application consuming too much memory
+
+        **Symptoms:**
+        - Out of memory errors
+        - Container killed by OOMKiller
+        - System becomes unresponsive
+
+        **Solutions:**
+
+        **1. Monitor Memory Usage:**
+        ```bash
+        # System memory
+        free -h
+        top -p $(pgrep -f "uvicorn|node")
+
+        # Docker container memory
+        docker stats
+        docker system df
+        ```
+
+        **2. Optimize Backend:**
+        ```bash
+        # Use fewer workers
+        uvicorn main:app --workers 1
+
+        # Limit memory per worker
+        export PYTHONOPTIMIZE=1
+        ```
+
+        **3. Optimize Frontend:**
+        ```bash
+        # Limit Node.js memory
+        node --max-old-space-size=512 server.js
+
+        # Optimize Next.js build
+        npm run build -- --experimental-memory-limit=1024
+        ```
+
+        **4. Container Memory Limits:**
+        ```yaml
+        # docker-compose.yml
+        backend:
+          deploy:
+            resources:
+              limits:
+                memory: 512M
+        ```
+
+        ## Security Issues
+
+        ### HTTPS Certificate Errors
+
+        **Problem:** SSL/TLS certificate issues in production
+
+        **Symptoms:**
+        - Browser security warnings
+        - Certificate expired errors
+        - SSL handshake failures
+
+        **Solutions:**
+
+        **1. Verify Certificate Files:**
+        ```bash
+        # Check certificate validity
+        openssl x509 -in nginx/ssl/cert.pem -text -noout
+        openssl x509 -in nginx/ssl/cert.pem -enddate -noout
+
+        # Check private key
+        openssl rsa -in nginx/ssl/private.key -check
+        ```
+
+        **2. Generate Self-Signed Certificate (Development):**
+        ```bash
+        openssl req -x509 -newkey rsa:2048 -keyout nginx/ssl/private.key \
+          -out nginx/ssl/cert.pem -days 365 -nodes \
+          -subj "/CN=localhost"
+        ```
+
+        **3. Let's Encrypt Certificate (Production):**
+        ```bash
+        sudo certbot certonly --standalone -d your-domain.com
+        cp /etc/letsencrypt/live/your-domain.com/fullchain.pem nginx/ssl/cert.pem
+        cp /etc/letsencrypt/live/your-domain.com/privkey.pem nginx/ssl/private.key
+        ```
+
+        **4. Test SSL Configuration:**
+        ```bash
+        # Test SSL connection
+        openssl s_client -connect your-domain.com:443 -servername your-domain.com
+
+        # Check SSL grade
+        # Use online tools like SSL Labs
+        ```
+
+        ### Authentication Failures
+
+        **Problem:** JWT token validation failures
+
+        **Symptoms:**
+        - Login successful but subsequent requests fail
+        - Token expired errors
+        - Invalid signature errors
+
+        **Debugging:**
+        ```bash
+        # Decode JWT token (without verification)
+        echo "eyJ0eXAiOiJKV1..." | base64 -d
+
+        # Check token expiry with Python
+        python -c "
+        import jwt
+        import json
+        token = 'your-jwt-token'
+        decoded = jwt.decode(token, options={'verify_signature': False})
+        print(json.dumps(decoded, indent=2))
+        "
+        ```
+
+        **Solutions:**
+
+        **1. Check JWT Secret:**
+        ```bash
+        # Ensure JWT_SECRET is set and consistent
+        echo $JWT_SECRET | wc -c  # Should be 32+ characters
+        ```
+
+        **2. Verify Token Format:**
+        ```bash
+        # Tokens should start with "Bearer "
+        curl -H "Authorization: Bearer eyJ0eXAi..." http://localhost:8000/api/user/profile
+        ```
+
+        **3. Check Token Expiry:**
+        ```bash
+        # Increase token expiry for development
+        export SESSION_EXPIRES_MINUTES=120
+        ```
+
+        ## Monitoring Issues
+
+        ### Metrics Not Appearing
+
+        **Problem:** Prometheus metrics not collected
+
+        **Symptoms:**
+        - Empty Grafana dashboards
+        - Prometheus targets down
+        - No metrics endpoint response
+
+        **Solutions:**
+
+        **1. Check Metrics Endpoint:**
+        ```bash
+        curl http://localhost:8000/metrics
+        curl http://localhost:9090/targets  # Prometheus targets
+        ```
+
+        **2. Verify Prometheus Configuration:**
+        ```yaml
+        # monitoring/prometheus.yml
+        scrape_configs:
+          - job_name: 'trueface-backend'
+            static_configs:
+              - targets: ['backend:8000']  # Correct service name
+            scrape_interval: 10s
+        ```
+
+        **3. Check Docker Network:**
+        ```bash
+        # Test connectivity between containers
+        docker-compose exec prometheus wget -qO- http://backend:8000/metrics
+        docker-compose exec prometheus ping backend
+        ```
+
+        **4. Restart Monitoring Stack:**
+        ```bash
+        docker-compose restart prometheus grafana
+        ```
+
+        ### Grafana Dashboard Issues
+
+        **Problem:** Grafana not showing data
+
+        **Symptoms:**
+        - No data points in graphs
+        - Data source connection failed
+        - Query errors
+
+        **Solutions:**
+
+        **1. Verify Data Source:**
+        - **URL**: `http://prometheus:9090`
+        - **Access**: Server (default)
+        - **HTTP Method**: GET
+
+        **2. Test Prometheus Queries:**
+        ```promql
+        # Test in Prometheus UI (http://localhost:9090)
+        up{job="trueface-backend"}
+        rate(http_requests_total[5m])
+        ```
+
+        **3. Check Time Range:**
+        - Ensure time range covers data period
+        - Try "Last 5 minutes" for recent data
+
+        **4. Import Dashboard:**
+        ```bash
+        # Re-import dashboard JSON
+        # Grafana UI > Import > Upload JSON file
+        ```
+
+        ## Getting Help
+
+        ### Collecting Debug Information
+
+        When reporting issues, include:
+
+        ```bash
+        # System information
+        uname -a
+        docker --version
+        docker-compose --version
+        python --version
+        node --version
+
+        # Resource usage
+        df -h
+        free -h
+        docker system df
+
+        # Application logs
+        docker-compose logs --tail=100 backend frontend
+
+        # System logs
+        journalctl -u docker --since "1 hour ago"
+        ```
+
+        ### Log Analysis
+
+        **Backend Logs:**
+        ```bash
+        # View logs with timestamps
+        docker-compose logs -f -t backend
+
+        # Filter error logs
+        docker-compose logs backend | grep ERROR
+
+        # Save logs to file
+        docker-compose logs backend > backend_logs.txt
+        ```
+
+        **Frontend Logs:**
+        ```bash
+        # Next.js logs
+        docker-compose logs frontend
+
+        # Browser console logs
+        # Open DevTools > Console
+        ```
+
+        ### Creating Bug Reports
+
+        Include in your bug report:
+
+        1. **Environment Details**
+           - Operating system and version
+           - Docker/Node.js/Python versions
+           - Hardware specifications
+
+        2. **Steps to Reproduce**
+           - Exact commands used
+           - Configuration files (remove secrets)
+           - Input data or images used
+
+        3. **Expected vs Actual Behavior**
+           - What should happen
+           - What actually happens
+           - Screenshots if relevant
+
+        4. **Error Messages and Logs**
+           - Complete error messages
+           - Relevant log entries
+           - Stack traces
+
+        5. **Workarounds**
+           - Any temporary fixes found
+           - Alternative approaches tried
+
+        ## Additional Resources
+
+        <div className="not-prose">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-8">
+            <Link
+              href="/docs/getting-started"
+              className="block bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-all hover:border-blue-200 group"
+            >
+              <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-900 mb-2">
+                Getting Started
+              </h3>
+              <p className="text-gray-600 group-hover:text-gray-700">
+                Go back to installation and setup instructions.
+              </p>
+            </Link>
+
+            <Link
+              href="/docs/deployment"
+              className="block bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-all hover:border-blue-200 group"
+            >
+              <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-900 mb-2">
+                Deployment Guide
+              </h3>
+              <p className="text-gray-600 group-hover:text-gray-700">
+                Production deployment troubleshooting and best practices.
+              </p>
+            </Link>
+          </div>
+        </div>
+
+        ## Community Support
+
+        If you can't find a solution here:
+
+        - **Search existing issues** on GitHub
+        - **Create a detailed issue** with reproduction steps
+        - **Join community discussions** for help from other users
+        - **Check documentation** for recent updates
+
+        Remember to search existing issues before creating new ones, and provide as much detail as possible when asking for help!
+      </div>
+    </DocsLayout>
+  );
+}

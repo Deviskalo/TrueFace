@@ -1,0 +1,711 @@
+import DocsLayout from '@/components/DocsLayout';
+import Link from 'next/link';
+
+export default function DeploymentPage() {
+  return (
+    <DocsLayout
+      title="Deployment"
+      description="Deploy TrueFace to production with Docker and proper configuration"
+    >
+      <div className="space-y-8">
+        ## Overview
+
+        TrueFace is designed for production deployment with Docker containers, comprehensive monitoring, and security best practices. This guide covers different deployment options from simple single-server setups to scalable cloud deployments.
+
+        ### Deployment Options
+
+        1. **Docker Compose (Recommended)** - Complete stack with one command
+        2. **Kubernetes** - For large-scale, cloud-native deployments
+        3. **Cloud Platforms** - AWS, Google Cloud, Azure deployments
+        4. **Manual Installation** - Direct server deployment
+
+        ## Quick Production Setup
+
+        The fastest way to deploy TrueFace to production is using Docker Compose:
+
+        ### 1. Prepare Your Server
+
+        ```bash
+        # Update system
+        sudo apt update && sudo apt upgrade -y
+
+        # Install Docker and Docker Compose
+        curl -fsSL https://get.docker.com -o get-docker.sh
+        sudo sh get-docker.sh
+        sudo apt install docker-compose-plugin
+
+        # Add your user to docker group
+        sudo usermod -aG docker $USER
+        ```
+
+        ### 2. Clone and Configure
+
+        ```bash
+        # Clone repository
+        git clone <repository-url>
+        cd TrueFace
+
+        # Copy production environment template
+        cp .env.prod.example .env.prod
+        ```
+
+        ### 3. Configure Environment Variables
+
+        Edit `.env.prod` with your production settings:
+
+        ```bash
+        # Security - CHANGE THESE!
+        JWT_SECRET=your-64-character-secret-key-change-this-in-production
+        MONGO_ROOT_PASSWORD=your-strong-mongodb-password
+        REDIS_PASSWORD=your-redis-password
+        GRAFANA_PASSWORD=your-grafana-dashboard-password
+
+        # Domain Configuration
+        DOMAIN_NAME=your-domain.com
+        CORS_ORIGINS=https://your-domain.com
+
+        # Database
+        MONGO_URI=mongodb://trueface_app:your-app-password@mongo:27017/trueface_prod?authSource=admin
+
+        # Email (Optional)
+        SMTP_HOST=smtp.gmail.com
+        SMTP_USER=your-email@gmail.com
+        SMTP_PASSWORD=your-app-password
+        ```
+
+        ### 4. Deploy
+
+        ```bash
+        # Run deployment script
+        chmod +x deploy.prod.sh
+        ./deploy.prod.sh
+        ```
+
+        The deployment script will:
+        - Generate SSL certificates (Let's Encrypt)
+        - Build and start all containers
+        - Initialize the database
+        - Run health checks
+        - Display access URLs
+
+        <div className="not-prose">
+          <div className="bg-green-50 border border-green-200 rounded-lg p-6 my-8">
+            <div className="flex items-start">
+              <div className="flex-shrink-0">
+                <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-lg font-medium text-green-900">Production Ready!</h3>
+                <p className="text-green-800 mt-1">
+                  After deployment, TrueFace will be available at your domain with SSL, monitoring, and all production features enabled.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        ## Docker Compose Deployment
+
+        ### Architecture Overview
+
+        The production Docker Compose setup includes:
+
+        ```
+        Internet → Nginx (SSL) → Frontend + Backend → MongoDB + Redis
+                              ↓
+                       Prometheus + Grafana
+        ```
+
+        **Services:**
+        - **Frontend**: Next.js application (port 3000)
+        - **Backend**: FastAPI application (port 8000)
+        - **Nginx**: Reverse proxy with SSL (ports 80/443)
+        - **MongoDB**: Database with authentication (port 27017)
+        - **Redis**: Caching and rate limiting (port 6379)
+        - **Prometheus**: Metrics collection (port 9090)
+        - **Grafana**: Monitoring dashboard (port 3001)
+
+        ### Manual Deployment Steps
+
+        If you prefer manual deployment over the automated script:
+
+        #### 1. Build Images
+
+        ```bash
+        # Build backend image
+        docker build -f backend/Dockerfile.prod -t trueface-backend:latest backend/
+
+        # Build frontend image
+        docker build -f frontend/Dockerfile.prod -t trueface-frontend:latest frontend/
+        ```
+
+        #### 2. Generate SSL Certificates
+
+        ```bash
+        # Create SSL directory
+        mkdir -p nginx/ssl
+
+        # Option A: Let's Encrypt (Recommended)
+        sudo apt install certbot
+        sudo certbot certonly --standalone -d your-domain.com
+        cp /etc/letsencrypt/live/your-domain.com/fullchain.pem nginx/ssl/cert.pem
+        cp /etc/letsencrypt/live/your-domain.com/privkey.pem nginx/ssl/private.key
+
+        # Option B: Self-signed (Development only)
+        openssl req -x509 -newkey rsa:2048 -keyout nginx/ssl/private.key \
+          -out nginx/ssl/cert.pem -days 365 -nodes \
+          -subj "/CN=your-domain.com"
+        ```
+
+        #### 3. Start Services
+
+        ```bash
+        # Start the complete stack
+        docker-compose -f docker-compose.prod.yml up -d
+
+        # Check service status
+        docker-compose -f docker-compose.prod.yml ps
+
+        # View logs
+        docker-compose -f docker-compose.prod.yml logs -f
+        ```
+
+        #### 4. Initialize Database
+
+        ```bash
+        # Run database initialization
+        docker-compose -f docker-compose.prod.yml exec backend python scripts/init_db.py
+        ```
+
+        ### Health Checks
+
+        Verify your deployment:
+
+        ```bash
+        # Application health
+        curl https://your-domain.com/health
+
+        # API status
+        curl https://your-domain.com/api/health
+
+        # Metrics
+        curl https://your-domain.com/metrics
+
+        # Admin interface
+        curl https://your-domain.com/admin
+        ```
+
+        ## Cloud Platform Deployments
+
+        ### AWS Deployment
+
+        Deploy TrueFace on AWS using ECS, RDS, and ElastiCache:
+
+        #### Infrastructure Components
+
+        ```bash
+        # Using AWS CLI and CloudFormation
+        
+        # 1. Create ECS cluster
+        aws ecs create-cluster --cluster-name trueface-production
+
+        # 2. Set up RDS (MongoDB-compatible DocumentDB)
+        aws docdb create-db-cluster \
+          --db-cluster-identifier trueface-db \
+          --engine docdb \
+          --master-username admin \
+          --master-user-password YourSecurePassword
+
+        # 3. Create ElastiCache Redis cluster
+        aws elasticache create-cache-cluster \
+          --cache-cluster-id trueface-redis \
+          --engine redis \
+          --cache-node-type cache.t3.micro \
+          --num-cache-nodes 1
+        ```
+
+        #### ECS Task Definition
+
+        ```json
+        {
+          "family": "trueface-backend",
+          "networkMode": "awsvpc",
+          "cpu": "256",
+          "memory": "512",
+          "containerDefinitions": [
+            {
+              "name": "backend",
+              "image": "your-account.dkr.ecr.region.amazonaws.com/trueface-backend:latest",
+              "portMappings": [
+                {
+                  "containerPort": 8000,
+                  "protocol": "tcp"
+                }
+              ],
+              "environment": [
+                {
+                  "name": "MONGO_URI",
+                  "value": "mongodb://username:password@docdb-cluster.region.docdb.amazonaws.com:27017/trueface"
+                },
+                {
+                  "name": "REDIS_URL", 
+                  "value": "redis://cache-cluster.region.cache.amazonaws.com:6379"
+                }
+              ]
+            }
+          ]
+        }
+        ```
+
+        ### Google Cloud Deployment
+
+        Deploy using Cloud Run, Cloud SQL, and Memorystore:
+
+        ```bash
+        # Build and push images
+        gcloud builds submit --tag gcr.io/PROJECT-ID/trueface-backend backend/
+        gcloud builds submit --tag gcr.io/PROJECT-ID/trueface-frontend frontend/
+
+        # Deploy backend service
+        gcloud run deploy trueface-backend \
+          --image gcr.io/PROJECT-ID/trueface-backend \
+          --platform managed \
+          --region us-central1 \
+          --set-env-vars="MONGO_URI=mongodb://...,REDIS_URL=redis://..."
+
+        # Deploy frontend service
+        gcloud run deploy trueface-frontend \
+          --image gcr.io/PROJECT-ID/trueface-frontend \
+          --platform managed \
+          --region us-central1
+        ```
+
+        ### Azure Deployment
+
+        Using Azure Container Instances and Azure Database for MongoDB:
+
+        ```bash
+        # Create resource group
+        az group create --name TrueFaceRG --location eastus
+
+        # Deploy using ARM template
+        az deployment group create \
+          --resource-group TrueFaceRG \
+          --template-file azure-template.json \
+          --parameters @azure-parameters.json
+        ```
+
+        ## Kubernetes Deployment
+
+        For large-scale deployments, use Kubernetes:
+
+        ### Deployment Manifests
+
+        #### Backend Deployment
+
+        ```yaml
+        # k8s/backend-deployment.yaml
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata:
+          name: trueface-backend
+        spec:
+          replicas: 3
+          selector:
+            matchLabels:
+              app: trueface-backend
+          template:
+            metadata:
+              labels:
+                app: trueface-backend
+            spec:
+              containers:
+              - name: backend
+                image: trueface-backend:latest
+                ports:
+                - containerPort: 8000
+                env:
+                - name: MONGO_URI
+                  valueFrom:
+                    secretKeyRef:
+                      name: trueface-secrets
+                      key: mongo-uri
+                - name: JWT_SECRET
+                  valueFrom:
+                    secretKeyRef:
+                      name: trueface-secrets
+                      key: jwt-secret
+        ```
+
+        #### Service and Ingress
+
+        ```yaml
+        # k8s/backend-service.yaml
+        apiVersion: v1
+        kind: Service
+        metadata:
+          name: trueface-backend-service
+        spec:
+          selector:
+            app: trueface-backend
+          ports:
+          - port: 80
+            targetPort: 8000
+        ---
+        # k8s/ingress.yaml
+        apiVersion: networking.k8s.io/v1
+        kind: Ingress
+        metadata:
+          name: trueface-ingress
+        spec:
+          tls:
+          - hosts:
+            - your-domain.com
+            secretName: tls-secret
+          rules:
+          - host: your-domain.com
+            http:
+              paths:
+              - path: /api
+                pathType: Prefix
+                backend:
+                  service:
+                    name: trueface-backend-service
+                    port:
+                      number: 80
+        ```
+
+        #### Deploy to Kubernetes
+
+        ```bash
+        # Apply configurations
+        kubectl apply -f k8s/
+
+        # Check deployment status
+        kubectl get deployments
+        kubectl get pods
+        kubectl get services
+
+        # View logs
+        kubectl logs deployment/trueface-backend
+        ```
+
+        ## Security Considerations
+
+        ### SSL/TLS Configuration
+
+        **Let's Encrypt (Recommended):**
+        ```bash
+        # Auto-renewal setup
+        sudo crontab -e
+        # Add: 0 12 * * * /usr/bin/certbot renew --quiet && docker-compose restart nginx
+        ```
+
+        **Custom Certificate:**
+        ```bash
+        # Place your certificates
+        cp your-domain.crt nginx/ssl/cert.pem
+        cp your-domain.key nginx/ssl/private.key
+        ```
+
+        ### Environment Security
+
+        ```bash
+        # Secure file permissions
+        chmod 600 .env.prod
+        chown root:root .env.prod
+
+        # Use strong passwords
+        openssl rand -base64 32  # Generate secure passwords
+
+        # Firewall configuration
+        ufw allow 22    # SSH
+        ufw allow 80    # HTTP
+        ufw allow 443   # HTTPS  
+        ufw enable
+        ```
+
+        ### Database Security
+
+        ```bash
+        # MongoDB security checklist:
+        # ✓ Authentication enabled
+        # ✓ Authorization configured
+        # ✓ Network encryption (SSL/TLS)
+        # ✓ Regular backups
+        # ✓ Access logging
+        ```
+
+        ## Monitoring & Observability
+
+        ### Prometheus Metrics
+
+        TrueFace exports comprehensive metrics:
+
+        ```promql
+        # Application metrics
+        http_requests_total{job="trueface-backend"}
+        face_recognition_requests_total{action="login"}
+        active_sessions_count
+
+        # Infrastructure metrics  
+        cpu_usage_percent
+        memory_usage_bytes
+        disk_usage_percent
+        ```
+
+        ### Grafana Dashboards
+
+        Access monitoring at `https://your-domain.com:3001`:
+        - **Username**: `admin`
+        - **Password**: `your-grafana-password`
+
+        **Pre-configured dashboards:**
+        - System Overview
+        - Application Performance
+        - Business Metrics
+        - Security Events
+
+        ### Alerting
+
+        Configure alerts for critical events:
+
+        ```yaml
+        # alerts/critical.yml
+        groups:
+        - name: trueface-critical
+          rules:
+          - alert: HighErrorRate
+            expr: rate(http_requests_total{status=~"5.."}[5m]) > 0.1
+            for: 2m
+            annotations:
+              summary: "High error rate detected"
+              
+          - alert: DatabaseDown
+            expr: up{job="mongodb"} == 0
+            for: 1m
+            annotations:
+              summary: "MongoDB is unreachable"
+        ```
+
+        ## Scaling & Performance
+
+        ### Horizontal Scaling
+
+        Scale backend services:
+
+        ```yaml
+        # docker-compose.prod.yml
+        backend:
+          deploy:
+            replicas: 3
+          
+        # Load balancer configuration
+        nginx:
+          depends_on:
+            - backend
+          # Nginx upstream config handles load balancing
+        ```
+
+        ### Database Scaling
+
+        **MongoDB Replica Set:**
+        ```yaml
+        mongo-primary:
+          image: mongo:6.0
+          command: mongod --replSet rs0
+
+        mongo-secondary1:
+          image: mongo:6.0
+          command: mongod --replSet rs0
+
+        mongo-secondary2:
+          image: mongo:6.0
+          command: mongod --replSet rs0
+        ```
+
+        **Performance Optimization:**
+        ```bash
+        # Backend optimization
+        uvicorn main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker
+
+        # Database indexing
+        db.users.createIndex({ email: 1 })
+        db.sessions.createIndex({ expires_at: 1 })
+
+        # Redis caching
+        redis-cli CONFIG SET maxmemory 256mb
+        redis-cli CONFIG SET maxmemory-policy allkeys-lru
+        ```
+
+        ## Backup & Disaster Recovery
+
+        ### Automated Backups
+
+        ```bash
+        # Database backup script
+        #!/bin/bash
+        # scripts/backup-database.sh
+
+        DATE=$(date +%Y%m%d_%H%M%S)
+        BACKUP_DIR="/backups/mongodb"
+        
+        # Create backup
+        mongodump --host mongo:27017 \
+          --db trueface_prod \
+          --username backup_user \
+          --password $MONGO_BACKUP_PASSWORD \
+          --out $BACKUP_DIR/backup_$DATE
+
+        # Compress backup
+        tar -czf $BACKUP_DIR/backup_$DATE.tar.gz $BACKUP_DIR/backup_$DATE
+        rm -rf $BACKUP_DIR/backup_$DATE
+
+        # Upload to cloud storage (optional)
+        aws s3 cp $BACKUP_DIR/backup_$DATE.tar.gz s3://your-backup-bucket/
+        ```
+
+        **Schedule backups:**
+        ```bash
+        # Add to crontab
+        0 2 * * * /path/to/TrueFace/scripts/backup-database.sh
+        ```
+
+        ### Disaster Recovery
+
+        ```bash
+        # Restore from backup
+        tar -xzf backup_20250128_020000.tar.gz
+        mongorestore --host mongo:27017 \
+          --db trueface_prod \
+          --username admin \
+          --password $MONGO_ROOT_PASSWORD \
+          backup_20250128_020000/trueface_prod
+        ```
+
+        ## Troubleshooting Deployment
+
+        ### Common Issues
+
+        **Container won't start:**
+        ```bash
+        # Check logs
+        docker-compose logs backend
+        docker-compose logs frontend
+
+        # Check resource usage
+        docker stats
+
+        # Restart services
+        docker-compose restart backend
+        ```
+
+        **SSL Certificate issues:**
+        ```bash
+        # Verify certificate
+        openssl x509 -in nginx/ssl/cert.pem -text -noout
+
+        # Test SSL connection
+        openssl s_client -connect your-domain.com:443
+
+        # Nginx configuration test
+        docker-compose exec nginx nginx -t
+        ```
+
+        **Database connection failures:**
+        ```bash
+        # Check MongoDB status
+        docker-compose exec mongo mongosh --eval "db.runCommand('ping')"
+
+        # Test from backend
+        docker-compose exec backend python -c "
+        import pymongo
+        client = pymongo.MongoClient(os.environ['MONGO_URI'])
+        print(client.admin.command('ping'))
+        "
+        ```
+
+        ## Maintenance
+
+        ### Regular Updates
+
+        ```bash
+        # Update system packages
+        sudo apt update && sudo apt upgrade -y
+
+        # Update Docker images
+        docker-compose pull
+        docker-compose up -d
+
+        # Clean up old images
+        docker image prune -f
+        ```
+
+        ### Health Monitoring
+
+        ```bash
+        # Automated health check script
+        #!/bin/bash
+        # scripts/health-check.sh
+
+        ENDPOINTS=(
+          "https://your-domain.com/health"
+          "https://your-domain.com/api/health"
+        )
+
+        for endpoint in "${ENDPOINTS[@]}"; do
+          status=$(curl -s -o /dev/null -w "%{http_code}" "$endpoint")
+          if [ "$status" -ne "200" ]; then
+            echo "ALERT: $endpoint returned status $status"
+            # Send alert notification
+          fi
+        done
+        ```
+
+        ## Next Steps
+
+        <div className="not-prose">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-8">
+            <Link
+              href="/docs/troubleshooting"
+              className="block bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-all hover:border-blue-200 group"
+            >
+              <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-900 mb-2">
+                Troubleshooting
+              </h3>
+              <p className="text-gray-600 group-hover:text-gray-700">
+                Common deployment issues and their solutions.
+              </p>
+            </Link>
+
+            <div className="bg-white border border-gray-200 rounded-lg p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                Production Checklist
+              </h3>
+              <ul className="text-sm text-gray-600 space-y-1">
+                <li>✓ SSL certificates configured</li>
+                <li>✓ Environment variables secured</li>
+                <li>✓ Database authentication enabled</li>
+                <li>✓ Monitoring configured</li>
+                <li>✓ Backups automated</li>
+                <li>✓ Health checks passing</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        ## Support
+
+        For deployment assistance:
+        - Check the [troubleshooting guide](/docs/troubleshooting)
+        - Review logs for error messages
+        - Create an issue with deployment details
+        - Join community discussions
+
+        Remember to change default passwords and secure your deployment before going live!
+      </div>
+    </DocsLayout>
+  );
+}

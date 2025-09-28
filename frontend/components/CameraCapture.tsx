@@ -4,7 +4,7 @@ import { useRef, useState, useCallback, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 
 // Dynamically import react-webcam to avoid SSR hydration issues
-const Webcam = dynamic(() => import('react-webcam'), { ssr: false });
+const Webcam = dynamic(() => import('react-webcam'), { ssr: false }) as any;
 
 type WebcamInstance = typeof import('react-webcam')['default'];
 

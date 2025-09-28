@@ -1,0 +1,664 @@
+import DocsLayout from '@/components/DocsLayout';
+import Link from 'next/link';
+
+const endpoints = [
+  {
+    category: 'Authentication',
+    endpoints: [
+      {
+        method: 'POST',
+        path: '/api/auth/signup',
+        description: 'Create a new user account with face enrollment',
+        auth: false,
+      },
+      {
+        method: 'POST',
+        path: '/api/auth/login',
+        description: 'Authenticate user with face recognition',
+        auth: false,
+      },
+      {
+        method: 'POST',
+        path: '/api/auth/logout',
+        description: 'Revoke current session',
+        auth: true,
+      },
+    ],
+  },
+  {
+    category: 'User Management',
+    endpoints: [
+      {
+        method: 'GET',
+        path: '/api/user/profile',
+        description: 'Get current user profile information',
+        auth: true,
+      },
+      {
+        method: 'GET',
+        path: '/api/user/sessions',
+        description: 'Get user active sessions',
+        auth: true,
+      },
+      {
+        method: 'POST',
+        path: '/api/user/sessions/revoke-all',
+        description: 'Revoke all sessions except current',
+        auth: true,
+      },
+      {
+        method: 'GET',
+        path: '/api/user/history',
+        description: 'Get user authentication history',
+        auth: true,
+      },
+    ],
+  },
+  {
+    category: 'Face Processing',
+    endpoints: [
+      {
+        method: 'POST',
+        path: '/api/face/enroll',
+        description: 'Enroll additional face for current user',
+        auth: true,
+      },
+      {
+        method: 'POST',
+        path: '/api/face/verify',
+        description: 'Verify face matches current user',
+        auth: true,
+      },
+      {
+        method: 'POST',
+        path: '/api/face/recognize',
+        description: 'Recognize face against all users',
+        auth: false,
+      },
+    ],
+  },
+  {
+    category: 'Admin',
+    endpoints: [
+      {
+        method: 'POST',
+        path: '/api/admin/login',
+        description: 'Admin authentication',
+        auth: false,
+      },
+      {
+        method: 'GET',
+        path: '/api/admin/stats',
+        description: 'Get system statistics',
+        auth: 'admin',
+      },
+      {
+        method: 'GET',
+        path: '/api/admin/users',
+        description: 'Get user management data',
+        auth: 'admin',
+      },
+      {
+        method: 'POST',
+        path: '/api/admin/users/disable',
+        description: 'Disable a user account',
+        auth: 'admin',
+      },
+    ],
+  },
+];
+
+function MethodBadge({ method }: { method: string }) {
+  const colors = {
+    GET: 'bg-green-100 text-green-800',
+    POST: 'bg-blue-100 text-blue-800',
+    PUT: 'bg-orange-100 text-orange-800',
+    DELETE: 'bg-red-100 text-red-800',
+  };
+
+  return (
+    <span className={`px-2 py-1 text-xs font-medium rounded ${colors[method as keyof typeof colors]}`}>
+      {method}
+    </span>
+  );
+}
+
+function AuthBadge({ auth }: { auth: boolean | string }) {
+  if (auth === false) {
+    return <span className="text-xs text-gray-500">Public</span>;
+  }
+  if (auth === 'admin') {
+    return <span className="text-xs text-orange-600">Admin Only</span>;
+  }
+  return <span className="text-xs text-blue-600">Auth Required</span>;
+}
+
+export default function APIReferencePage() {
+  return (
+    <DocsLayout
+      title="API Reference"
+      description="Complete API documentation with examples and code samples"
+    >
+      <div className="space-y-8">
+        ## Overview
+
+        The TrueFace API is a RESTful API that provides face recognition authentication capabilities. All endpoints return JSON responses and use standard HTTP status codes.
+
+        ### Base URL
+        ```
+        http://localhost:8000  # Development
+        https://your-domain.com  # Production
+        ```
+
+        ### Authentication
+
+        Most endpoints require authentication using JWT Bearer tokens:
+
+        ```bash
+        Authorization: Bearer <your-jwt-token>
+        ```
+
+        Admin endpoints require admin authentication with elevated privileges.
+
+        ### Content Types
+
+        - **JSON requests**: `Content-Type: application/json`
+        - **File uploads**: `Content-Type: multipart/form-data`
+        - **Responses**: `Content-Type: application/json`
+
+        ### Rate Limiting
+
+        API endpoints are rate-limited to prevent abuse:
+        - **Authentication endpoints**: 10 requests/minute
+        - **File uploads**: 5 requests/minute
+        - **General API**: 100 requests/minute
+
+        ## Endpoints
+
+        <div className="not-prose">
+          {endpoints.map((category) => (
+            <div key={category.category} className="mb-8">
+              <h3 className="text-xl font-bold text-gray-900 mb-4">{category.category}</h3>
+              <div className="space-y-4">
+                {category.endpoints.map((endpoint) => (
+                  <div key={endpoint.path} className="bg-white border border-gray-200 rounded-lg p-6">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center space-x-3">
+                        <MethodBadge method={endpoint.method} />
+                        <code className="text-lg font-mono text-gray-900">{endpoint.path}</code>
+                      </div>
+                      <AuthBadge auth={endpoint.auth} />
+                    </div>
+                    <p className="text-gray-600">{endpoint.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        ## Authentication Endpoints
+
+        ### POST /api/auth/signup
+
+        Create a new user account with face enrollment.
+
+        **Request:**
+        ```bash
+        curl -X POST http://localhost:8000/api/auth/signup \
+          -F "name=John Doe" \
+          -F "email=john@example.com" \
+          -F "image=@face_photo.jpg"
+        ```
+
+        **Parameters:**
+        - `name` (string, required): User's full name
+        - `email` (string, required): Valid email address
+        - `image` (file, required): Face image (JPEG, PNG, WebP, GIF)
+
+        **Response:**
+        ```json
+        {
+          "user_id": "507f1f77bcf86cd799439011",
+          "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+        }
+        ```
+
+        ### POST /api/auth/login
+
+        Authenticate user with face recognition.
+
+        **Request:**
+        ```bash
+        curl -X POST http://localhost:8000/api/auth/login \
+          -F "image=@face_photo.jpg"
+        ```
+
+        **Parameters:**
+        - `image` (file, required): Face image for authentication
+
+        **Response:**
+        ```json
+        {
+          "match": {
+            "user_id": "507f1f77bcf86cd799439011",
+            "name": "John Doe",
+            "confidence": 0.95,
+            "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+          }
+        }
+        ```
+
+        ### POST /api/auth/logout
+
+        Revoke the current session.
+
+        **Headers:**
+        ```
+        Authorization: Bearer <token>
+        ```
+
+        **Response:**
+        ```json
+        {
+          "revoked": true
+        }
+        ```
+
+        ## User Management Endpoints
+
+        ### GET /api/user/profile
+
+        Get the current user's profile information.
+
+        **Headers:**
+        ```
+        Authorization: Bearer <token>
+        ```
+
+        **Response:**
+        ```json
+        {
+          "profile": {
+            "user_id": "507f1f77bcf86cd799439011",
+            "name": "John Doe",
+            "email": "john@example.com",
+            "face_count": 2,
+            "created_at": "2025-01-28T10:30:00Z"
+          }
+        }
+        ```
+
+        ### GET /api/user/sessions
+
+        Get the user's active sessions.
+
+        **Headers:**
+        ```
+        Authorization: Bearer <token>
+        ```
+
+        **Response:**
+        ```json
+        {
+          "sessions": [
+            {
+              "session_id": "sess_123",
+              "created_at": "2025-01-28T10:30:00Z",
+              "expires_at": "2025-01-28T11:30:00Z",
+              "current": true
+            }
+          ]
+        }
+        ```
+
+        ### POST /api/user/sessions/revoke-all
+
+        Revoke all sessions except the current one.
+
+        **Headers:**
+        ```
+        Authorization: Bearer <token>
+        ```
+
+        **Response:**
+        ```json
+        {
+          "revoked_count": 3
+        }
+        ```
+
+        ### GET /api/user/history
+
+        Get user authentication history.
+
+        **Headers:**
+        ```
+        Authorization: Bearer <token>
+        ```
+
+        **Query Parameters:**
+        - `limit` (integer, optional): Number of records (default: 50)
+        - `offset` (integer, optional): Offset for pagination (default: 0)
+
+        **Response:**
+        ```json
+        {
+          "history": [
+            {
+              "action": "login",
+              "timestamp": "2025-01-28T10:30:00Z",
+              "confidence": 0.95,
+              "success": true
+            }
+          ],
+          "total": 25
+        }
+        ```
+
+        ## Face Processing Endpoints
+
+        ### POST /api/face/enroll
+
+        Enroll an additional face for the current user.
+
+        **Headers:**
+        ```
+        Authorization: Bearer <token>
+        ```
+
+        **Request:**
+        ```bash
+        curl -X POST http://localhost:8000/api/face/enroll \
+          -H "Authorization: Bearer <token>" \
+          -F "image=@new_face_photo.jpg"
+        ```
+
+        **Response:**
+        ```json
+        {
+          "enrolled": true
+        }
+        ```
+
+        ### POST /api/face/verify
+
+        Verify that a face matches the current user.
+
+        **Headers:**
+        ```
+        Authorization: Bearer <token>
+        ```
+
+        **Request:**
+        ```bash
+        curl -X POST http://localhost:8000/api/face/verify \
+          -H "Authorization: Bearer <token>" \
+          -F "image=@face_photo.jpg"
+        ```
+
+        **Response:**
+        ```json
+        {
+          "verified": true,
+          "confidence": 0.92
+        }
+        ```
+
+        ### POST /api/face/recognize
+
+        Recognize a face against all users in the system.
+
+        **Request:**
+        ```bash
+        curl -X POST http://localhost:8000/api/face/recognize \
+          -F "image=@face_photo.jpg"
+        ```
+
+        **Response:**
+        ```json
+        {
+          "candidates": [
+            {
+              "user_id": "507f1f77bcf86cd799439011",
+              "name": "John Doe",
+              "confidence": 0.95
+            }
+          ]
+        }
+        ```
+
+        ## Admin Endpoints
+
+        ### POST /api/admin/login
+
+        Authenticate as an administrator.
+
+        **Request:**
+        ```json
+        {
+          "username": "admin",
+          "password": "admin123"
+        }
+        ```
+
+        **Response:**
+        ```json
+        {
+          "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+        }
+        ```
+
+        ### GET /api/admin/stats
+
+        Get system statistics for the admin dashboard.
+
+        **Headers:**
+        ```
+        Authorization: Bearer <admin_token>
+        ```
+
+        **Response:**
+        ```json
+        {
+          "stats": {
+            "total_users": 150,
+            "active_sessions": 23,
+            "recent_signups_7d": 12,
+            "recent_logins_24h": 45,
+            "total_authentications": 1250,
+            "success_rate": 0.94
+          }
+        }
+        ```
+
+        ### GET /api/admin/users
+
+        Get user management data with pagination.
+
+        **Headers:**
+        ```
+        Authorization: Bearer <admin_token>
+        ```
+
+        **Query Parameters:**
+        - `limit` (integer, optional): Number of users (default: 50)
+        - `offset` (integer, optional): Offset for pagination (default: 0)
+
+        **Response:**
+        ```json
+        {
+          "users": [
+            {
+              "user_id": "507f1f77bcf86cd799439011",
+              "name": "John Doe",
+              "email": "john@example.com",
+              "face_count": 2,
+              "created_at": "2025-01-28T10:30:00Z",
+              "disabled": false
+            }
+          ],
+          "total": 150
+        }
+        ```
+
+        ### POST /api/admin/users/disable
+
+        Disable a user account.
+
+        **Headers:**
+        ```
+        Authorization: Bearer <admin_token>
+        ```
+
+        **Request:**
+        ```json
+        {
+          "user_id": "507f1f77bcf86cd799439011",
+          "reason": "Policy violation"
+        }
+        ```
+
+        **Response:**
+        ```json
+        {
+          "disabled": true
+        }
+        ```
+
+        ## Health & Monitoring
+
+        ### GET /health
+
+        Check application health status.
+
+        **Response:**
+        ```json
+        {
+          "status": "ok",
+          "db": {"reachable": true},
+          "mongo_uri": "mongodb://***@mongo:27017/trueface_prod",
+          "dev_mode": false
+        }
+        ```
+
+        ### GET /metrics
+
+        Get Prometheus metrics (if monitoring is enabled).
+
+        **Response:**
+        ```
+        # Prometheus format metrics
+        http_requests_total{method="GET",endpoint="/health",status="200"} 145
+        face_recognition_requests_total{action="login",status="success"} 89
+        ...
+        ```
+
+        ## Error Handling
+
+        The API uses standard HTTP status codes:
+
+        - **200**: Success
+        - **400**: Bad Request (invalid parameters)
+        - **401**: Unauthorized (missing or invalid token)
+        - **403**: Forbidden (insufficient permissions)
+        - **404**: Not Found
+        - **422**: Validation Error
+        - **429**: Rate Limit Exceeded
+        - **500**: Internal Server Error
+
+        **Error Response Format:**
+        ```json
+        {
+          "error": "Invalid credentials",
+          "details": "Face recognition confidence too low"
+        }
+        ```
+
+        ## SDKs and Examples
+
+        <div className="not-prose">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-8">
+            <div className="bg-gray-50 rounded-lg p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">JavaScript/TypeScript</h3>
+              <pre className="text-sm text-gray-800 overflow-x-auto"><code>{`const response = await fetch('/api/auth/signup', {
+  method: 'POST',
+  body: formData
+});
+const data = await response.json();`}</code></pre>
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Python</h3>
+              <pre className="text-sm text-gray-800 overflow-x-auto"><code>{`import requests
+
+response = requests.post(
+  'http://localhost:8000/api/auth/signup',
+  files={'image': open('face.jpg', 'rb')},
+  data={'name': 'John Doe', 'email': 'john@example.com'}
+)`}</code></pre>
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">curl</h3>
+              <pre className="text-sm text-gray-800 overflow-x-auto"><code>{`curl -X POST http://localhost:8000/api/auth/signup \\
+  -F "name=John Doe" \\
+  -F "email=john@example.com" \\
+  -F "image=@face_photo.jpg"`}</code></pre>
+            </div>
+
+            <div className="bg-gray-50 rounded-lg p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-3">Frontend Hooks</h3>
+              <pre className="text-sm text-gray-800 overflow-x-auto"><code>{`import { useAuth } from '@/hooks/useAuth';
+
+const { login, user, isLoading } = useAuth();
+await login(imageData);`}</code></pre>
+            </div>
+          </div>
+        </div>
+
+        ## Interactive API Explorer
+
+        For interactive API testing, visit the auto-generated Swagger documentation:
+
+        **Development:** [http://localhost:8000/docs](http://localhost:8000/docs)
+
+        This provides a complete interactive interface where you can:
+        - Test all endpoints directly
+        - See request/response schemas
+        - Authenticate and use your tokens
+        - Download OpenAPI specifications
+
+        ## Next Steps
+
+        <div className="not-prose">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-8">
+            <Link
+              href="/docs/components"
+              className="block bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-all hover:border-blue-200 group"
+            >
+              <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-900 mb-2">
+                Frontend Components
+              </h3>
+              <p className="text-gray-600 group-hover:text-gray-700">
+                Learn about the React components that interact with these APIs.
+              </p>
+            </Link>
+
+            <Link
+              href="/docs/deployment"
+              className="block bg-white border border-gray-200 rounded-lg p-6 hover:shadow-md transition-all hover:border-blue-200 group"
+            >
+              <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-900 mb-2">
+                Deployment
+              </h3>
+              <p className="text-gray-600 group-hover:text-gray-700">
+                Deploy your TrueFace API to production environments.
+              </p>
+            </Link>
+          </div>
+        </div>
+      </div>
+    </DocsLayout>
+  );
+}
