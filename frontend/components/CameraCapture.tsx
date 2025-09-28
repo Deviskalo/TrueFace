@@ -4,7 +4,8 @@ import { useRef, useState, useCallback, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 
 // Dynamically import react-webcam to avoid SSR hydration issues
-const Webcam = dynamic(() => import('react-webcam'), { ssr: false }) as any;
+// @ts-ignore
+const Webcam = dynamic(() => import('react-webcam'), { ssr: false });
 
 type WebcamInstance = typeof import('react-webcam')['default'];
 
@@ -98,7 +99,6 @@ export default function CameraCapture({ onCapture, onError, className = '' }: Ca
     
     try {
       // Capture the image as base64
-      // @ts-expect-error react-webcam instance typing
       const imageSrc = webcamRef.current.getScreenshot?.();
       
       if (!imageSrc) {

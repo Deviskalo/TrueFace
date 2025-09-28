@@ -3,6 +3,21 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --card-background: #ffffff;
+  --border-color: #e5e7eb;
+  --text-primary: #111827;
+  --text-secondary: #374151;
+  --text-muted: #6b7280;
+}
+
+.dark {
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --card-background: #1f2937;
+  --border-color: #374151;
+  --text-primary: #f9fafb;
+  --text-secondary: #d1d5db;
+  --text-muted: #9ca3af;
 }
 
 @theme inline {
@@ -13,9 +28,14 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not(.dark):not([data-theme="light"]) {
     --background: #0a0a0a;
     --foreground: #ededed;
+    --card-background: #1f2937;
+    --border-color: #374151;
+    --text-primary: #f9fafb;
+    --text-secondary: #d1d5db;
+    --text-muted: #9ca3af;
   }
 }
 
@@ -33,7 +53,7 @@ body {
 .docs-content h1 {
   font-size: 2.25rem;
   font-weight: 800;
-  color: #111827;
+  color: var(--text-primary);
   margin-bottom: 1rem;
   margin-top: 2rem;
 }
@@ -41,17 +61,17 @@ body {
 .docs-content h2 {
   font-size: 1.875rem;
   font-weight: 700;
-  color: #111827;
+  color: var(--text-primary);
   margin-bottom: 0.75rem;
   margin-top: 2rem;
-  border-bottom: 1px solid #e5e7eb;
+  border-bottom: 1px solid var(--border-color);
   padding-bottom: 0.5rem;
 }
 
 .docs-content h3 {
   font-size: 1.5rem;
   font-weight: 600;
-  color: #111827;
+  color: var(--text-primary);
   margin-bottom: 0.5rem;
   margin-top: 1.5rem;
 }
@@ -59,13 +79,13 @@ body {
 .docs-content h4 {
   font-size: 1.25rem;
   font-weight: 600;
-  color: #111827;
+  color: var(--text-primary);
   margin-bottom: 0.5rem;
   margin-top: 1rem;
 }
 
 .docs-content p {
-  color: #111827;
+  color: var(--text-primary);
   margin-bottom: 1rem;
   font-size: 1rem;
 }
@@ -76,14 +96,14 @@ body {
 }
 
 .docs-content li {
-  color: #111827;
+  color: var(--text-primary);
   margin-bottom: 0.25rem;
   font-size: 1rem;
 }
 
 .docs-content strong {
   font-weight: 600;
-  color: #111827;
+  color: var(--text-primary);
 }
 
 .docs-content code {
@@ -95,6 +115,11 @@ body {
   font-family: ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo, monospace;
 }
 
+.dark .docs-content code {
+  background-color: #374151;
+  color: #e5e7eb;
+}
+
 .docs-content pre {
   background-color: #111827;
   color: #f9fafb;
@@ -104,6 +129,12 @@ body {
   margin: 1rem 0;
   font-size: 0.875rem;
   line-height: 1.5;
+  border: 1px solid #374151;
+}
+
+.dark .docs-content pre {
+  background-color: #0f172a;
+  border-color: #1e293b;
 }
 
 .docs-content pre code {

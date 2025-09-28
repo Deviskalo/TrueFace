@@ -3,7 +3,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   output: 'standalone',
   experimental: {
-    outputFileTracingRoot: undefined, // Set to project root in monorepo
+    // Add experimental features here if needed
   },
   // Security headers
   async headers() {

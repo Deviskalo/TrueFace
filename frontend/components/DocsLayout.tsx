@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ChevronDownIcon, ChevronRightIcon, Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline';
+import ThemeToggle from '@/app/components/ThemeToggle';
 
 interface NavItem {
   title: string;
@@ -77,8 +78,8 @@ function NavItemComponent({ item, pathname, level = 0 }: NavItemComponentProps) 
           href={item.href}
           className={`flex-1 block px-3 py-2 text-sm rounded-lg transition-colors ${
             isActive
-              ? 'bg-blue-50 text-blue-700 font-medium'
-              : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
+              ? 'bg-blue-50 text-blue-700 font-medium dark:bg-blue-900 dark:text-blue-300'
+              : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50 dark:text-gray-300 dark:hover:text-gray-100 dark:hover:bg-gray-700'
           } ${level > 0 ? 'ml-4' : ''}`}
         >
           {item.title}
@@ -123,17 +124,17 @@ export default function DocsLayout({ children, title, description }: DocsLayoutP
   const pathname = usePathname();
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white dark:bg-gray-900">
       {/* Mobile sidebar */}
       <div className={`fixed inset-0 z-50 lg:hidden ${sidebarOpen ? 'block' : 'hidden'}`}>
         <div className="fixed inset-0 bg-black/20" onClick={() => setSidebarOpen(false)} />
-        <div className="fixed inset-y-0 left-0 w-64 bg-white shadow-lg">
+        <div className="fixed inset-y-0 left-0 w-64 bg-white dark:bg-gray-800 shadow-lg">
           <div className="flex items-center justify-between p-4 border-b">
             <Link href="/" className="flex items-center space-x-2">
               <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">TF</span>
               </div>
-              <span className="font-semibold text-gray-900">TrueFace</span>
+              <span className="font-semibold text-gray-900 dark:text-gray-100">TrueFace</span>
             </Link>
             <button
               onClick={() => setSidebarOpen(false)}
@@ -156,13 +157,13 @@ export default function DocsLayout({ children, title, description }: DocsLayoutP
       <div className="lg:flex">
         {/* Desktop sidebar */}
         <div className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0">
-          <div className="flex flex-col flex-1 bg-white border-r border-gray-200">
+            <div className="flex flex-col flex-1 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700">
             <div className="flex items-center p-4 border-b">
               <Link href="/" className="flex items-center space-x-2">
                 <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
                   <span className="text-white font-bold text-sm">TF</span>
                 </div>
-                <span className="font-semibold text-gray-900">TrueFace</span>
+                <span className="font-semibold text-gray-900 dark:text-gray-100">TrueFace</span>
               </Link>
             </div>
             <nav className="flex-1 p-4 overflow-y-auto">
@@ -178,7 +179,7 @@ export default function DocsLayout({ children, title, description }: DocsLayoutP
         {/* Main content */}
         <div className="lg:pl-64 flex-1">
           {/* Top header */}
-          <header className="bg-white border-b border-gray-200 lg:border-none">
+          <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 lg:border-none">
             <div className="flex items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
               <div className="flex items-center space-x-4">
                 <button
@@ -188,14 +189,15 @@ export default function DocsLayout({ children, title, description }: DocsLayoutP
                   <Bars3Icon className="w-5 h-5" />
                 </button>
                 <div>
-                  {title && <h1 className="text-2xl font-bold text-gray-900">{title}</h1>}
-                  {description && <p className="text-gray-600 mt-1">{description}</p>}
+                  {title && <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{title}</h1>}
+                  {description && <p className="text-gray-600 dark:text-gray-400 mt-1">{description}</p>}
                 </div>
               </div>
               <div className="flex items-center space-x-4">
+                <ThemeToggle size="sm" />
                 <Link
                   href="/dashboard"
-                  className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+                  className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100 transition-colors"
                 >
                   Dashboard
                 </Link>

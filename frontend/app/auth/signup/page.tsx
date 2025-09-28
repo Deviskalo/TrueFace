@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import CameraCapture from "../../../components/CameraCapture";
 import { useApi } from "../../../hooks/useApi";
+import ThemeToggle from "../../../app/components/ThemeToggle";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -69,18 +70,18 @@ export default function SignupPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
+      <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 dark:from-green-900 dark:to-blue-900 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 text-center">
           <div className="text-6xl mb-4">✅</div>
-          <h1 className="text-2xl font-bold text-green-800 mb-4">
+          <h1 className="text-2xl font-bold text-green-800 dark:text-green-400 mb-4">
             Registration Successful!
           </h1>
-          <p className="text-gray-600 mb-4">
+          <p className="text-gray-600 dark:text-gray-300 mb-4">
             Welcome to TrueFace, {formData.name}! You can now log in using your
             face.
           </p>
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-green-500 border-t-transparent mx-auto"></div>
-          <p className="text-sm text-gray-500 mt-2">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-green-500 dark:border-green-400 border-t-transparent mx-auto"></div>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
             Redirecting to dashboard...
           </p>
         </div>
@@ -89,8 +90,13 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-purple-900 dark:to-pink-900 flex items-center justify-center p-4">
       <div className="max-w-4xl w-full">
+        {/* Theme Toggle */}
+        <div className="flex justify-end mb-6">
+          <ThemeToggle />
+        </div>
+        
         {/* Logo Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center space-x-3 mb-4">
@@ -98,18 +104,18 @@ export default function SignupPage() {
               <div className="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
                 <span className="text-2xl text-white">👤</span>
               </div>
-              <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white"></div>
+              <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white dark:border-gray-800"></div>
             </div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-400 bg-clip-text text-transparent">
               TrueFace
             </h1>
           </div>
-          <p className="text-gray-600 text-lg">
+          <p className="text-gray-600 dark:text-gray-300 text-lg">
             Join the future of passwordless authentication
           </p>
         </div>
 
-        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 overflow-hidden">
+        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 dark:border-gray-700/20 overflow-hidden">
           {/* Progress indicator */}
           <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6">
             <div className="flex justify-center">
@@ -160,11 +166,11 @@ export default function SignupPage() {
 
         <div className="p-8">
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-800">{error}</p>
+            <div className="mb-6 p-4 bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 rounded-lg">
+              <p className="text-red-800 dark:text-red-200">{error}</p>
               <button
                 onClick={clearError}
-                className="text-red-600 hover:text-red-800 text-sm mt-2 underline"
+                className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 text-sm mt-2 underline"
               >
                 Dismiss
               </button>
@@ -177,10 +183,10 @@ export default function SignupPage() {
                 <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-2xl mb-4">
                   <span className="text-2xl text-white">✏️</span>
                 </div>
-                <h2 className="text-3xl font-bold text-gray-900 mb-2">
+                <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
                   Let's Get Started
                 </h2>
-                <p className="text-gray-600">
+                <p className="text-gray-600 dark:text-gray-300">
                   Tell us a bit about yourself to create your secure account
                 </p>
               </div>
@@ -188,7 +194,7 @@ export default function SignupPage() {
               <form onSubmit={handleFormSubmit} className="space-y-6">
                 <div className="space-y-6">
                   <div className="group">
-                    <label htmlFor="name" className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label htmlFor="name" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                       Full Name
                     </label>
                     <div className="relative">
@@ -198,17 +204,17 @@ export default function SignupPage() {
                         required
                         value={formData.name}
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        className="w-full px-4 py-4 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 group-hover:border-gray-300"
+                        className="w-full px-4 py-4 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:bg-white dark:focus:bg-gray-600 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400 transition-all duration-200 group-hover:border-gray-300 dark:group-hover:border-gray-500 text-gray-900 dark:text-gray-100"
                         placeholder="Enter your full name"
                       />
-                      <div className="absolute right-4 top-4 text-gray-400">
+                      <div className="absolute right-4 top-4 text-gray-400 dark:text-gray-500">
                         <span className="text-lg">👤</span>
                       </div>
                     </div>
                   </div>
 
                   <div className="group">
-                    <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label htmlFor="email" className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                       Email Address
                     </label>
                     <div className="relative">
@@ -218,10 +224,10 @@ export default function SignupPage() {
                         required
                         value={formData.email}
                         onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        className="w-full px-4 py-4 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 group-hover:border-gray-300"
+                        className="w-full px-4 py-4 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:bg-white dark:focus:bg-gray-600 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:focus:border-blue-400 transition-all duration-200 group-hover:border-gray-300 dark:group-hover:border-gray-500 text-gray-900 dark:text-gray-100"
                         placeholder="Enter your email address"
                       />
-                      <div className="absolute right-4 top-4 text-gray-400">
+                      <div className="absolute right-4 top-4 text-gray-400 dark:text-gray-500">
                         <span className="text-lg">📧</span>
                       </div>
                     </div>
@@ -238,9 +244,9 @@ export default function SignupPage() {
                 </div>
 
                 <div className="text-center pt-4">
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
                     Already have an account?{' '}
-                    <a href="/auth/login" className="font-semibold text-blue-600 hover:text-purple-600 transition-colors">
+                    <a href="/auth/login" className="font-semibold text-blue-600 dark:text-blue-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">
                       Sign in here
                     </a>
                   </p>
@@ -252,12 +258,12 @@ export default function SignupPage() {
           {currentStep === "camera" && (
             <div>
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-semibold">
+                <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
                   Step 2: Capture Your Face
                 </h2>
                 <button
                   onClick={handleBackToForm}
-                  className="text-blue-600 hover:text-blue-800 font-medium"
+                  className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium"
                 >
                   ← Back to Form
                 </button>
@@ -276,12 +282,12 @@ export default function SignupPage() {
           {currentStep === "review" && capturedImage && (
             <div>
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-semibold">
+                <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
                   Step 3: Review & Submit
                 </h2>
                 <button
                   onClick={handleRetakePhoto}
-                  className="text-blue-600 hover:text-blue-800 font-medium"
+                  className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium"
                 >
                   ← Retake Photo
                 </button>
@@ -290,38 +296,38 @@ export default function SignupPage() {
               <div className="grid md:grid-cols-2 gap-8">
                 {/* User Info */}
                 <div>
-                  <h3 className="text-lg font-semibold mb-4">
+                  <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
                     Your Information
                   </h3>
-                  <div className="space-y-3 bg-gray-50 p-4 rounded-lg">
+                  <div className="space-y-3 bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                     <div>
-                      <span className="font-medium text-gray-600">Name:</span>
-                      <span className="ml-2">{formData.name}</span>
+                      <span className="font-medium text-gray-600 dark:text-gray-300">Name:</span>
+                      <span className="ml-2 text-gray-900 dark:text-gray-100">{formData.name}</span>
                     </div>
                     <div>
-                      <span className="font-medium text-gray-600">Email:</span>
-                      <span className="ml-2">{formData.email}</span>
+                      <span className="font-medium text-gray-600 dark:text-gray-300">Email:</span>
+                      <span className="ml-2 text-gray-900 dark:text-gray-100">{formData.email}</span>
                     </div>
                   </div>
                 </div>
 
                 {/* Captured Photo */}
                 <div>
-                  <h3 className="text-lg font-semibold mb-4">
+                  <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
                     Your Face Photo
                   </h3>
-                  <div className="bg-gray-50 p-4 rounded-lg">
+                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
                     <img
                       src={capturedImage.src}
                       alt="Your captured face"
-                      className="w-full h-48 object-cover rounded-lg border-2 border-gray-200"
+                      className="w-full h-48 object-cover rounded-lg border-2 border-gray-200 dark:border-gray-600"
                     />
                   </div>
                 </div>
               </div>
 
               <div className="mt-8 space-y-4">
-                <div className="text-sm text-gray-600 bg-blue-50 p-4 rounded-lg">
+                <div className="text-sm text-gray-600 dark:text-gray-300 bg-blue-50 dark:bg-blue-900 p-4 rounded-lg">
                   <p className="mb-2">
                     <strong>Privacy Notice:</strong>
                   </p>

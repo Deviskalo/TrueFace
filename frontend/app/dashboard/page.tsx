@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useApi } from '../../hooks/useApi';
 import CameraCapture from '../../components/CameraCapture';
+import ThemeToggle from '@/app/components/ThemeToggle';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -69,41 +70,42 @@ export default function Dashboard() {
 
   if (!token || !userId) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       {/* Navigation */}
-      <nav className="bg-white shadow-sm border-b">
+      <nav className="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center space-x-2">
               <span className="text-2xl">👤</span>
-              <span className="text-xl font-bold text-gray-900">TrueFace</span>
-              <span className="text-sm text-gray-500">Dashboard</span>
+              <span className="text-xl font-bold text-gray-900 dark:text-gray-100">TrueFace</span>
+              <span className="text-sm text-gray-500 dark:text-gray-400">Dashboard</span>
             </div>
             <div className="flex items-center space-x-6">
               <nav className="hidden md:flex space-x-6">
-                <span className="text-blue-600 font-medium">Dashboard</span>
-                <Link href="/profile" className="text-gray-600 hover:text-blue-600 font-medium">
+                <span className="text-blue-600 dark:text-blue-400 font-medium">Dashboard</span>
+                <Link href="/profile" className="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium">
                   Profile
                 </Link>
-                <Link href="/sessions" className="text-gray-600 hover:text-blue-600 font-medium">
+                <Link href="/sessions" className="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium">
                   Sessions
                 </Link>
-                <Link href="/history" className="text-gray-600 hover:text-blue-600 font-medium">
+                <Link href="/history" className="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 font-medium">
                   History
                 </Link>
               </nav>
               <div className="flex items-center space-x-4">
-                <span className="text-sm text-gray-600">User: {userId}</span>
+                <ThemeToggle size="sm" />
+                <span className="text-sm text-gray-600 dark:text-gray-300">User: {userId}</span>
                 <button
                   onClick={handleLogout}
-                  className="text-red-600 hover:text-red-800 font-medium"
+                  className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300 font-medium"
                 >
                   Logout
                 </button>
@@ -115,19 +117,19 @@ export default function Dashboard() {
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Section */}
-        <div className="bg-white rounded-lg shadow-sm p-8 mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-8 mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-4">
             Welcome to Your Dashboard! 🎉
           </h1>
-          <p className="text-gray-600 mb-4">
+          <p className="text-gray-600 dark:text-gray-300 mb-4">
             Congratulations! You've successfully registered with TrueFace and are now logged in using facial recognition.
           </p>
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+          <div className="bg-green-50 dark:bg-green-900 border border-green-200 dark:border-green-700 rounded-lg p-4">
             <div className="flex items-center">
-              <span className="text-green-500 text-xl mr-3">✅</span>
+              <span className="text-green-500 dark:text-green-400 text-xl mr-3">✅</span>
               <div>
-                <p className="font-semibold text-green-800">Face Authentication Active</p>
-                <p className="text-green-600 text-sm">Your account is secured with biometric authentication</p>
+                <p className="font-semibold text-green-800 dark:text-green-200">Face Authentication Active</p>
+                <p className="text-green-600 dark:text-green-300 text-sm">Your account is secured with biometric authentication</p>
               </div>
             </div>
           </div>
@@ -135,10 +137,10 @@ export default function Dashboard() {
 
         {/* Feature Cards */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700">
             <div className="text-3xl mb-4">🔒</div>
-            <h3 className="text-lg font-semibold mb-2">Face Enrollment</h3>
-            <p className="text-gray-600 mb-4">
+            <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">Face Enrollment</h3>
+            <p className="text-gray-600 dark:text-gray-300 mb-4">
               Add additional face photos to improve recognition accuracy.
             </p>
             <button 
@@ -149,10 +151,10 @@ export default function Dashboard() {
             </button>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700">
             <div className="text-3xl mb-4">✅</div>
-            <h3 className="text-lg font-semibold mb-2">Identity Verification</h3>
-            <p className="text-gray-600 mb-4">
+            <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">Identity Verification</h3>
+            <p className="text-gray-600 dark:text-gray-300 mb-4">
               Verify your identity with a quick face scan.
             </p>
             <button 
@@ -163,10 +165,10 @@ export default function Dashboard() {
             </button>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700">
             <div className="text-3xl mb-4">📊</div>
-            <h3 className="text-lg font-semibold mb-2">Activity History</h3>
-            <p className="text-gray-600 mb-4">
+            <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">Activity History</h3>
+            <p className="text-gray-600 dark:text-gray-300 mb-4">
               View your authentication history and activity logs.
             </p>
             <Link href="/history" className="w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors block text-center">
@@ -177,10 +179,10 @@ export default function Dashboard() {
 
         {/* New Quick Access Cards */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700">
             <div className="text-3xl mb-4">👤</div>
-            <h3 className="text-lg font-semibold mb-2">User Profile</h3>
-            <p className="text-gray-600 mb-4">
+            <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">User Profile</h3>
+            <p className="text-gray-600 dark:text-gray-300 mb-4">
               View and manage your account information and settings.
             </p>
             <Link href="/profile" className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors block text-center">
@@ -188,10 +190,10 @@ export default function Dashboard() {
             </Link>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700">
             <div className="text-3xl mb-4">🛡️</div>
-            <h3 className="text-lg font-semibold mb-2">Session Management</h3>
-            <p className="text-gray-600 mb-4">
+            <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">Session Management</h3>
+            <p className="text-gray-600 dark:text-gray-300 mb-4">
               Manage active sessions and secure your account.
             </p>
             <Link href="/sessions" className="w-full bg-orange-600 text-white py-2 px-4 rounded-lg hover:bg-orange-700 transition-colors block text-center">
@@ -199,10 +201,10 @@ export default function Dashboard() {
             </Link>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm p-6 border border-gray-200">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm p-6 border border-gray-200 dark:border-gray-700">
             <div className="text-3xl mb-4">🔍</div>
-            <h3 className="text-lg font-semibold mb-2">Recognition Analytics</h3>
-            <p className="text-gray-600 mb-4">
+            <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">Recognition Analytics</h3>
+            <p className="text-gray-600 dark:text-gray-300 mb-4">
               View detailed analytics of your face recognition performance.
             </p>
             <Link href="/history" className="w-full bg-indigo-600 text-white py-2 px-4 rounded-lg hover:bg-indigo-700 transition-colors block text-center">
@@ -212,12 +214,12 @@ export default function Dashboard() {
         </div>
 
         {/* Success Section */}
-        <div className="bg-green-50 rounded-lg p-6">
-          <h2 className="text-xl font-semibold text-green-900 mb-4">🎉 TrueFace is Fully Functional!</h2>
-          <p className="text-green-800 mb-4">
+        <div className="bg-green-50 dark:bg-green-900 rounded-lg p-6">
+          <h2 className="text-xl font-semibold text-green-900 dark:text-green-100 mb-4">🎉 TrueFace is Fully Functional!</h2>
+          <p className="text-green-800 dark:text-green-200 mb-4">
             Congratulations! You've successfully used facial recognition to authenticate. Here's what's working:
           </p>
-          <ul className="list-disc list-inside text-green-700 space-y-2">
+          <ul className="list-disc list-inside text-green-700 dark:text-green-300 space-y-2">
             <li>✅ Face-based user registration</li>
             <li>✅ Face-based login authentication</li>
             <li>✅ Camera integration with webcam</li>
@@ -228,10 +230,10 @@ export default function Dashboard() {
             <li>✅ Enhanced camera permissions handling</li>
             <li>✅ Cross-browser compatibility</li>
           </ul>
-          <div className="mt-4 p-4 bg-white rounded-lg">
+          <div className="mt-4 p-4 bg-white dark:bg-gray-800 rounded-lg">
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 dark:text-gray-300">
                   <strong>🚀 Production Ready Features:</strong><br/>
                   • MongoDB Atlas support<br/>
                   • Real face recognition (with ML models)<br/>
@@ -240,7 +242,7 @@ export default function Dashboard() {
                 </p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 dark:text-gray-300">
                   <strong>🛠️ Development Mode Active:</strong><br/>
                   • Mock face embeddings for testing<br/>
                   • In-memory user database<br/>
@@ -256,9 +258,9 @@ export default function Dashboard() {
       {/* Modal for Camera Actions */}
       {activeModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-semibold text-gray-800">
+              <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-100">
                 {activeModal === 'enroll' ? '📷 Enroll Additional Face' : '🔍 Verify Your Identity'}
               </h2>
               <button
@@ -267,14 +269,14 @@ export default function Dashboard() {
                   setModalMessage(null);
                   clearError();
                 }}
-                className="text-gray-500 hover:text-gray-700 text-2xl"
+                className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 text-2xl"
               >
                 ×
               </button>
             </div>
             
             <div className="mb-4">
-              <p className="text-gray-600 text-center">
+              <p className="text-gray-600 dark:text-gray-300 text-center">
                 {activeModal === 'enroll' 
                   ? 'Adding multiple face photos improves recognition accuracy. Position your face in the circle and capture.' 
                   : 'Look at the camera to verify your identity. This will confirm you are the account holder.'}
@@ -286,13 +288,13 @@ export default function Dashboard() {
                 <div className="text-4xl mb-4">
                   {modalMessage.startsWith('✅') ? '🎉' : '⚠️'}
                 </div>
-                <p className={`text-lg ${modalMessage.startsWith('✅') ? 'text-green-700' : 'text-red-700'}`}>
+                <p className={`text-lg ${modalMessage.startsWith('✅') ? 'text-green-700 dark:text-green-300' : 'text-red-700 dark:text-red-300'}`}>
                   {modalMessage}
                 </p>
               </div>
             ) : error ? (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-                <p className="text-red-700">{error}</p>
+              <div className="bg-red-50 dark:bg-red-900 border border-red-200 dark:border-red-700 rounded-lg p-4 mb-4">
+                <p className="text-red-700 dark:text-red-200">{error}</p>
               </div>
             ) : (
               <CameraCapture
@@ -304,8 +306,8 @@ export default function Dashboard() {
 
             {isLoading && (
               <div className="text-center py-4">
-                <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-600 border-t-transparent mx-auto mb-2"></div>
-                <p className="text-gray-600">Processing...</p>
+                <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-600 dark:border-blue-400 border-t-transparent mx-auto mb-2"></div>
+                <p className="text-gray-600 dark:text-gray-300">Processing...</p>
               </div>
             )}
           </div>
