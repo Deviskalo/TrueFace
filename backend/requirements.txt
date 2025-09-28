@@ -8,4 +8,7 @@ pytest>=7.4.0
 numpy>=1.27.0
 # Optional: fast ANN index for large-scale search. Install only if desired.
 # hnswlib==0.7.0
-python-dotenv>=1.0.0bcrypt==5.0.0
+python-dotenv>=1.0.0
+bcrypt>=4.0.1
+slowapi>=0.1.9
+bleach>=6.1.0

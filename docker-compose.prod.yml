@@ -1,0 +1,243 @@
+version: "3.9"
+
+services:
+  # Frontend service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    container_name: trueface_frontend_prod
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=https://api.trueface.local
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+    depends_on:
+      - backend
+    networks:
+      - trueface_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Backend service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    container_name: trueface_backend_prod
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      # Database configuration
+      - MONGO_URI=mongodb://mongo:27017/trueface_prod
+      # Security settings
+      - JWT_SECRET=${JWT_SECRET:-$(openssl rand -hex 32)}
+      - SESSION_EXPIRES_MINUTES=60
+      # CORS configuration
+      - CORS_ORIGINS=https://trueface.local,https://api.trueface.local
+      # Security features
+      - RATE_LIMIT_ENABLED=true
+      - RATE_LIMIT_DEFAULT=100/minute
+      - RATE_LIMIT_AUTH=10/minute
+      - RATE_LIMIT_UPLOAD=5/minute
+      - SECURITY_HEADERS_ENABLED=true
+      # Production settings
+      - DEV_MODE_NO_DB=false
+      - TEST_MODE=false
+    depends_on:
+      - mongo
+      - redis
+    networks:
+      - trueface_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    volumes:
+      - backend_logs:/app/logs
+      - backend_uploads:/app/uploads
+
+  # MongoDB database
+  mongo:
+    image: mongo:6.0
+    container_name: trueface_mongo_prod
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USER:-admin}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD:-changeme123}
+      - MONGO_INITDB_DATABASE=trueface_prod
+    volumes:
+      - mongo_data:/data/db
+      - mongo_config:/data/configdb
+      - ./scripts/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - trueface_network
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    command: --auth --bind_ip_all
+
+  # Redis for rate limiting and caching
+  redis:
+    image: redis:7-alpine
+    container_name: trueface_redis_prod
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass ${REDIS_PASSWORD:-changeme456}
+    volumes:
+      - redis_data:/data
+    networks:
+      - trueface_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Nginx reverse proxy and load balancer
+  nginx:
+    image: nginx:1.24-alpine
+    container_name: trueface_nginx_prod
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.prod.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - trueface_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Monitoring with Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: trueface_prometheus_prod
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+    networks:
+      - trueface_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    container_name: trueface_grafana_prod
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin123}
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SECURITY_DISABLE_GRAVATAR=true
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    depends_on:
+      - prometheus
+    networks:
+      - trueface_network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  trueface_network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  # Database volumes
+  mongo_data:
+    driver: local
+  mongo_config:
+    driver: local
+  redis_data:
+    driver: local
+  
+  # Application volumes
+  backend_logs:
+    driver: local
+  backend_uploads:
+    driver: local
+  
+  # Monitoring volumes
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  
+  # Logs
+  nginx_logs:
+    driver: local

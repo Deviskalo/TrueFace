@@ -17,7 +17,7 @@ except Exception:
     # dotenv is optional; if not present we just rely on the environment.
     pass
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, Form
+from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, Form, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
@@ -25,12 +25,20 @@ from pydantic import BaseModel
 
 from . import db, utils, embeddings, schemas
 from .db import DBUnavailable
+from .security import (
+    limiter, SecurityHeadersMiddleware, rate_limit_exceeded_handler,
+    rate_limit_auth, rate_limit_upload, rate_limit_default,
+    validate_email, validate_name, validate_file_upload, validate_admin_credentials,
+    InputValidationError, get_security_context
+)
+from slowapi.errors import RateLimitExceeded
 import bcrypt
 
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/facial_recognition_db")
 JWT_SECRET = os.getenv("JWT_SECRET", "supersecretkey")
 SESSION_EXPIRES_MINUTES = int(os.getenv("SESSION_EXPIRES_MINUTES", "60"))
 DEV_MODE_NO_DB = os.getenv("DEV_MODE_NO_DB", "false").lower() in ["true", "1", "yes"]
+TEST_MODE = os.getenv("TEST_MODE", "false").lower() in ["true", "1", "yes"]
 
 
 @asynccontextmanager
@@ -46,13 +54,21 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="TrueFace Backend", lifespan=lifespan)
 
-# Add CORS middleware to allow frontend communication
+# Add security middleware
+app.add_middleware(SecurityHeadersMiddleware)
+
+# Add rate limiting
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
+
+# Add CORS middleware (configure for production)
+cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],  # Frontend URLs
+    allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 auth_scheme = HTTPBearer()
@@ -108,10 +124,21 @@ def get_current_admin(credentials: HTTPAuthorizationCredentials = Depends(auth_s
 
 
 @app.post("/api/auth/signup")
+@rate_limit_auth
+@rate_limit_upload
 async def signup(
+    request: Request,
     name: str = Form(...), email: str = Form(...), image: UploadFile = File(...)
 ):
-    contents = await image.read()
+    try:
+        # Validate and sanitize inputs
+        name = validate_name(name)
+        email = validate_email(email)
+        contents = await image.read()
+        contents = validate_file_upload(contents, skip_format_check=TEST_MODE)
+    except InputValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
     embedding = embeddings.get_embedding(contents)
     if embedding is None:
         raise HTTPException(status_code=400, detail="No face detected")
@@ -137,8 +164,15 @@ def db_unavailable_handler(request, exc: DBUnavailable):
 
 
 @app.post("/api/auth/login")
-async def login(image: UploadFile = File(...)) -> schemas.MatchResponse:
-    contents = await image.read()
+@rate_limit_auth
+@rate_limit_upload
+async def login(request: Request, image: UploadFile = File(...)) -> schemas.MatchResponse:
+    try:
+        contents = await image.read()
+        contents = validate_file_upload(contents, skip_format_check=TEST_MODE)
+    except InputValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
     embedding = embeddings.get_embedding(contents)
     if embedding is None:
         raise HTTPException(status_code=400, detail="No face detected")
@@ -173,8 +207,9 @@ def logout(credentials: HTTPAuthorizationCredentials = Depends(auth_scheme)):
 
 
 @app.post("/api/face/enroll")
+@rate_limit_upload
 async def enroll(
-    image: UploadFile = File(...), current_user: dict = Depends(get_current_user)
+    request: Request, image: UploadFile = File(...), current_user: dict = Depends(get_current_user)
 ) -> schemas.EnrollResponse:
     contents = await image.read()
     embedding = embeddings.get_embedding(contents)
@@ -189,8 +224,9 @@ async def enroll(
 
 
 @app.post("/api/face/verify")
+@rate_limit_upload
 async def verify(
-    image: UploadFile = File(...), current_user: dict = Depends(get_current_user)
+    request: Request, image: UploadFile = File(...), current_user: dict = Depends(get_current_user)
 ) -> schemas.VerifyResponse:
     contents = await image.read()
     embedding = embeddings.get_embedding(contents)
@@ -205,7 +241,8 @@ async def verify(
 
 
 @app.post("/api/face/recognize")
-async def recognize(image: UploadFile = File(...)):
+@rate_limit_upload
+async def recognize(request: Request, image: UploadFile = File(...)):
     contents = await image.read()
     embedding = embeddings.get_embedding(contents)
     if embedding is None:
@@ -339,9 +376,15 @@ def health():
 
 # Admin API Endpoints
 @app.post("/api/admin/login")
-def admin_login(credentials: AdminLoginPayload):
+@rate_limit_auth
+def admin_login(request: Request, credentials: AdminLoginPayload):
     """Admin login endpoint."""
-    admin = db.get_admin_by_username(credentials.username)
+    try:
+        username, password = validate_admin_credentials(credentials.username, credentials.password)
+    except InputValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    
+    admin = db.get_admin_by_username(username)
     if not admin:
         raise HTTPException(status_code=401, detail="Invalid credentials")
     
@@ -508,23 +551,3 @@ def get_analytics(
     
     # Production implementation would analyze actual data
     return JSONResponse({"analytics": {}})
-    try:
-        # call a light DB operation to verify connectivity
-        # db.get_logs uses the db layer and will raise DBUnavailable if not connected
-        db.get_logs(limit=1)
-        db_status = {"reachable": True}
-        status = "ok"
-        code = 200
-    except DBUnavailable as e:
-        db_status = {"reachable": False, "error": str(e)}
-        status = "partial"
-        code = 503
-
-    return JSONResponse(
-        status_code=code,
-        content={
-            "status": status,
-            "db": db_status,
-            "mongo_uri": _mask_uri(MONGO_URI),
-        },
-    )
