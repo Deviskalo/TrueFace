@@ -25,6 +25,7 @@ from pydantic import BaseModel
 
 from . import db, utils, embeddings, schemas
 from .db import DBUnavailable
+import bcrypt
 
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/facial_recognition_db")
 JWT_SECRET = os.getenv("JWT_SECRET", "supersecretkey")
@@ -62,6 +63,16 @@ class SignupPayload(BaseModel):
     email: str
 
 
+class AdminLoginPayload(BaseModel):
+    username: str
+    password: str
+
+
+class AdminActionPayload(BaseModel):
+    user_id: str
+    reason: str = None
+
+
 def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(auth_scheme)):
     token = credentials.credentials
     payload = utils.decode_access_token(token, JWT_SECRET)
@@ -75,6 +86,25 @@ def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(auth_sc
     if not user:
         raise HTTPException(status_code=401, detail="Invalid token user")
     return user
+
+
+def get_current_admin(credentials: HTTPAuthorizationCredentials = Depends(auth_scheme)):
+    """Verify admin authentication and return admin user."""
+    token = credentials.credentials
+    payload = utils.decode_access_token(token, JWT_SECRET)
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    
+    # Check if this is an admin token
+    if payload.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    
+    username = payload.get("username")
+    admin = db.get_admin_by_username(username)
+    if not admin:
+        raise HTTPException(status_code=401, detail="Invalid admin token")
+    
+    return admin
 
 
 @app.post("/api/auth/signup")
@@ -285,6 +315,199 @@ def health():
             },
         )
     
+    try:
+        # call a light DB operation to verify connectivity
+        # db.get_logs uses the db layer and will raise DBUnavailable if not connected
+        db.get_logs(limit=1)
+        db_status = {"reachable": True}
+        status = "ok"
+        code = 200
+    except DBUnavailable as e:
+        db_status = {"reachable": False, "error": str(e)}
+        status = "partial"
+        code = 503
+
+    return JSONResponse(
+        status_code=code,
+        content={
+            "status": status,
+            "db": db_status,
+            "mongo_uri": _mask_uri(MONGO_URI),
+        },
+    )
+
+
+# Admin API Endpoints
+@app.post("/api/admin/login")
+def admin_login(credentials: AdminLoginPayload):
+    """Admin login endpoint."""
+    admin = db.get_admin_by_username(credentials.username)
+    if not admin:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    if not utils.verify_password(credentials.password, admin["password_hash"]):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    
+    # Update last login
+    db.update_admin_last_login(credentials.username)
+    
+    # Create admin token
+    token = utils.create_access_token(
+        {
+            "username": admin["username"],
+            "role": "admin",
+            "admin_id": admin["_id"]
+        },
+        JWT_SECRET,
+        expires_minutes=SESSION_EXPIRES_MINUTES * 4  # Longer session for admins
+    )
+    
+    return JSONResponse({
+        "token": token,
+        "admin": {
+            "username": admin["username"],
+            "email": admin["email"],
+            "last_login": admin["last_login"].isoformat() if admin["last_login"] else None
+        }
+    })
+
+
+@app.get("/api/admin/stats")
+def get_system_stats(current_admin: dict = Depends(get_current_admin)):
+    """Get system statistics for admin dashboard."""
+    stats = db.get_system_stats()
+    return JSONResponse({"stats": stats})
+
+
+@app.get("/api/admin/users")
+def get_all_users(
+    limit: int = 50, 
+    offset: int = 0,
+    current_admin: dict = Depends(get_current_admin)
+):
+    """Get all users for admin management."""
+    users = db.get_all_users(limit=limit, offset=offset)
+    
+    # Format users for admin view
+    formatted_users = []
+    for user in users:
+        formatted_user = {
+            "user_id": user["_id"],
+            "name": user["name"],
+            "email": user["email"],
+            "face_count": len(user.get("faces", [])),
+            "created_at": user.get("created_at").isoformat() if user.get("created_at") else None,
+            "disabled": user.get("disabled", False),
+            "disabled_reason": user.get("disabled_reason"),
+            "disabled_at": user.get("disabled_at").isoformat() if user.get("disabled_at") else None
+        }
+        formatted_users.append(formatted_user)
+    
+    return JSONResponse({
+        "users": formatted_users,
+        "total_count": db.get_user_count(),
+        "offset": offset,
+        "limit": limit
+    })
+
+
+@app.post("/api/admin/users/disable")
+def disable_user_account(
+    action: AdminActionPayload,
+    current_admin: dict = Depends(get_current_admin)
+):
+    """Disable a user account."""
+    success = db.disable_user(action.user_id, action.reason)
+    if not success:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    # Log admin action
+    db.log_action(
+        action.user_id, 
+        "admin_disable",
+        metadata={
+            "admin_username": current_admin["username"],
+            "reason": action.reason
+        }
+    )
+    
+    return JSONResponse({"success": True, "message": "User account disabled"})
+
+
+@app.get("/api/admin/logs")
+def get_all_logs(
+    limit: int = 100,
+    action_filter: str = None,
+    current_admin: dict = Depends(get_current_admin)
+):
+    """Get system logs for admin monitoring."""
+    logs = db.get_logs(limit=limit)
+    
+    # Filter by action if specified
+    if action_filter:
+        logs = [log for log in logs if log.get("action") == action_filter]
+    
+    # Format logs for admin view
+    formatted_logs = []
+    for log in logs:
+        formatted_log = {
+            "_id": log["_id"],
+            "user_id": log["user_id"],
+            "action": log["action"],
+            "confidence": log.get("confidence"),
+            "timestamp": log["timestamp"].isoformat() if hasattr(log["timestamp"], 'isoformat') else log["timestamp"],
+            "metadata": log.get("metadata", {}),
+            "success": log.get("success", True)
+        }
+        formatted_logs.append(formatted_log)
+    
+    return JSONResponse({"logs": formatted_logs})
+
+
+@app.get("/api/admin/analytics")
+def get_analytics(
+    days: int = 7,
+    current_admin: dict = Depends(get_current_admin)
+):
+    """Get analytics data for admin dashboard."""
+    # This is a simplified version - in production you'd query actual data
+    if DEV_MODE_NO_DB:
+        # Mock analytics data
+        analytics = {
+            "user_growth": [
+                {"date": "2025-09-21", "count": 5},
+                {"date": "2025-09-22", "count": 8},
+                {"date": "2025-09-23", "count": 12},
+                {"date": "2025-09-24", "count": 15},
+                {"date": "2025-09-25", "count": 18},
+                {"date": "2025-09-26", "count": 22},
+                {"date": "2025-09-27", "count": 25},
+            ],
+            "authentication_trends": [
+                {"date": "2025-09-21", "successful": 45, "failed": 3},
+                {"date": "2025-09-22", "successful": 52, "failed": 2},
+                {"date": "2025-09-23", "successful": 68, "failed": 5},
+                {"date": "2025-09-24", "successful": 71, "failed": 4},
+                {"date": "2025-09-25", "successful": 83, "failed": 6},
+                {"date": "2025-09-26", "successful": 95, "failed": 7},
+                {"date": "2025-09-27", "successful": 102, "failed": 5},
+            ],
+            "confidence_distribution": {
+                "high": 75,  # >= 0.9
+                "medium": 20,  # 0.7-0.89
+                "low": 5  # < 0.7
+            },
+            "popular_actions": [
+                {"action": "login", "count": 245},
+                {"action": "verify", "count": 89},
+                {"action": "enroll", "count": 34},
+                {"action": "signup", "count": 25},
+            ]
+        }
+        return JSONResponse({"analytics": analytics})
+    
+    # Production implementation would analyze actual data
+    return JSONResponse({"analytics": {}})
     try:
         # call a light DB operation to verify connectivity
         # db.get_logs uses the db layer and will raise DBUnavailable if not connected

@@ -58,3 +58,17 @@ def decode_access_token(token: str, secret: str):
         return payload
     except JWTError:
         return None
+
+
+# Password hashing utilities for admin authentication
+def hash_password(password: str) -> str:
+    """Hash a password using bcrypt."""
+    import bcrypt
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
+
+
+def verify_password(password: str, hashed: str) -> bool:
+    """Verify a password against its hash."""
+    import bcrypt
+    return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))

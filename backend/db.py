@@ -27,6 +27,17 @@ DEV_MODE_NO_DB = os.getenv("DEV_MODE_NO_DB", "false").lower() in ["true", "1", "
 _mock_users = {}
 _mock_sessions = {}
 _mock_logs = []
+_mock_admin_users = {
+    "admin_1": {
+        "_id": "admin_1",
+        "username": "admin",
+        "email": "admin@trueface.local",
+        "role": "admin",
+        "created_at": datetime.now(timezone.utc),
+        "password_hash": "$2b$12$tlcOuG7xicas4bIdcfZGWeUtqENFBCU2Fe6YtU5lxDHBQSJtO1C.2",  # password: admin123
+        "last_login": None
+    }
+}
 
 
 class DBUnavailable(Exception):
@@ -649,4 +660,165 @@ def get_user_logs(user_id: str, limit: int = 50):
         pymongo_errors.PyMongoError,
     ) as e:
         logger.exception("DB unavailable during get_user_logs")
+        raise DBUnavailable(str(e))
+
+
+# Admin-specific functions
+def get_admin_by_username(username: str):
+    """Get admin user by username."""
+    if DEV_MODE_NO_DB:
+        for admin in _mock_admin_users.values():
+            if admin["username"] == username:
+                return admin
+        return None
+    
+    _ensure_db()
+    admins = _db["admin_users"]
+    try:
+        admin = admins.find_one({"username": username})
+        if admin:
+            admin["_id"] = str(admin["_id"])
+        return admin
+    except (
+        pymongo_errors.ServerSelectionTimeoutError,
+        pymongo_errors.AutoReconnect,
+        pymongo_errors.PyMongoError,
+    ) as e:
+        logger.exception("DB unavailable during get_admin_by_username")
+        raise DBUnavailable(str(e))
+
+
+def get_all_users(limit: int = 100, offset: int = 0):
+    """Get all users for admin management."""
+    if DEV_MODE_NO_DB:
+        users_list = list(_mock_users.values())[offset:offset + limit]
+        return users_list
+    
+    _ensure_db()
+    users = _db["users"]
+    try:
+        cursor = users.find().sort("created_at", -1).skip(offset).limit(limit)
+        result = []
+        for user in cursor:
+            user["_id"] = str(user["_id"])
+            result.append(user)
+        return result
+    except (
+        pymongo_errors.ServerSelectionTimeoutError,
+        pymongo_errors.AutoReconnect,
+        pymongo_errors.PyMongoError,
+    ) as e:
+        logger.exception("DB unavailable during get_all_users")
+        raise DBUnavailable(str(e))
+
+
+def get_user_count():
+    """Get total user count."""
+    if DEV_MODE_NO_DB:
+        return len(_mock_users)
+    
+    _ensure_db()
+    users = _db["users"]
+    try:
+        return users.count_documents({})
+    except (
+        pymongo_errors.ServerSelectionTimeoutError,
+        pymongo_errors.AutoReconnect,
+        pymongo_errors.PyMongoError,
+    ) as e:
+        logger.exception("DB unavailable during get_user_count")
+        raise DBUnavailable(str(e))
+
+
+def get_system_stats():
+    """Get system statistics for admin dashboard."""
+    if DEV_MODE_NO_DB:
+        recent_signups = len([u for u in _mock_users.values() 
+                            if u.get("created_at") and 
+                            (datetime.now(timezone.utc) - u["created_at"]).days <= 7])
+        active_sessions = len([s for s in _mock_sessions.values() 
+                             if not s.get("revoked", False)])
+        recent_logins = len([l for l in _mock_logs 
+                           if l["action"] == "login" and 
+                           (datetime.now(timezone.utc) - l["timestamp"]).days <= 1])
+        
+        return {
+            "total_users": len(_mock_users),
+            "active_sessions": active_sessions,
+            "recent_signups_7d": recent_signups,
+            "recent_logins_24h": recent_logins,
+            "total_authentications": len(_mock_logs),
+            "success_rate": 0.95  # Mock success rate
+        }
+    
+    _ensure_db()
+    # For production, implement actual database queries
+    # This is a simplified version
+    return {
+        "total_users": get_user_count(),
+        "active_sessions": 0,  # Would need actual session counting
+        "recent_signups_7d": 0,
+        "recent_logins_24h": 0,
+        "total_authentications": 0,
+        "success_rate": 0.0
+    }
+
+
+def disable_user(user_id: str, reason: str = None):
+    """Disable a user account."""
+    if DEV_MODE_NO_DB:
+        user = _mock_users.get(user_id)
+        if user:
+            user["disabled"] = True
+            user["disabled_reason"] = reason
+            user["disabled_at"] = datetime.now(timezone.utc)
+            return True
+        return False
+    
+    _ensure_db()
+    users = _db["users"]
+    try:
+        res = users.update_one(
+            {"_id": ObjectId(user_id)}, 
+            {
+                "$set": {
+                    "disabled": True,
+                    "disabled_reason": reason,
+                    "disabled_at": datetime.now(timezone.utc)
+                }
+            }
+        )
+        return res.matched_count > 0
+    except (
+        pymongo_errors.ServerSelectionTimeoutError,
+        pymongo_errors.AutoReconnect,
+        pymongo_errors.PyMongoError,
+    ) as e:
+        logger.exception("DB unavailable during disable_user")
+        raise DBUnavailable(str(e))
+
+
+def update_admin_last_login(username: str):
+    """Update admin last login timestamp."""
+    if DEV_MODE_NO_DB:
+        for admin in _mock_admin_users.values():
+            if admin["username"] == username:
+                admin["last_login"] = datetime.now(timezone.utc)
+                return True
+        return False
+    
+    _ensure_db()
+    admins = _db["admin_users"]
+    try:
+        res = admins.update_one(
+            {"username": username},
+            {"$set": {"last_login": datetime.now(timezone.utc)}}
+        )
+        return res.matched_count > 0
+    except (
+        pymongo_errors.ServerSelectionTimeoutError,
+        pymongo_errors.AutoReconnect,
+        pymongo_errors.PyMongoError,
+    ) as e:
+        logger.exception("DB unavailable during update_admin_last_login")
         raise DBUnavailable(str(e))
