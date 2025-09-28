@@ -8,7 +8,7 @@ export default function TroubleshootingPage() {
       description="Common issues and their solutions for TrueFace deployment and development"
     >
       <div className="space-y-8">
-        <div className="prose prose-gray max-w-none">
+        <div className="docs-content max-w-none">
           <h2>Overview</h2>
           <p>
             This troubleshooting guide covers common issues you might encounter when installing, 
@@ -208,7 +208,7 @@ journalctl -u docker --since "1 hour ago"`}</code></pre>
             <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-900 mb-2">
               Getting Started
             </h3>
-            <p className="text-gray-600 group-hover:text-gray-700">
+            <p className="text-gray-800 group-hover:text-gray-900">
               Go back to installation and setup instructions.
             </p>
           </Link>
@@ -220,13 +220,13 @@ journalctl -u docker --since "1 hour ago"`}</code></pre>
             <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-900 mb-2">
               Documentation
             </h3>
-            <p className="text-gray-600 group-hover:text-gray-700">
+            <p className="text-gray-800 group-hover:text-gray-900">
               Browse all documentation and guides.
             </p>
           </Link>
         </div>
 
-        <div className="prose prose-gray max-w-none">
+        <div className="docs-content max-w-none">
           <h2>Community Support</h2>
           <p>
             If you can&apos;t find a solution here, search existing issues on GitHub, 

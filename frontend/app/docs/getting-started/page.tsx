@@ -8,7 +8,7 @@ export default function GettingStartedPage() {
       description="Step-by-step guide to install and run TrueFace locally"
     >
       <div className="space-y-8">
-        <div className="prose prose-gray max-w-none">
+        <div className="docs-content max-w-none">
           <h2>Quick Start</h2>
           <p>
             Get TrueFace running locally in under 10 minutes with face recognition authentication.

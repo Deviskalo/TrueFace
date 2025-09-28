@@ -77,7 +77,7 @@ export default function DocsPage() {
             <h1 className="text-4xl font-bold text-gray-900 mb-4">
               Welcome to TrueFace
             </h1>
-            <p className="text-xl text-gray-600 mb-6">
+            <p className="text-xl text-gray-800 mb-6">
               TrueFace is a modern face recognition authentication platform that provides secure, 
               passwordless authentication using cutting-edge machine learning technology.
             </p>
@@ -108,7 +108,7 @@ export default function DocsPage() {
                   <feature.icon className="w-6 h-6 text-blue-600 mr-3" />
                   <h3 className="text-lg font-semibold text-gray-900">{feature.title}</h3>
                 </div>
-                <p className="text-gray-600">{feature.description}</p>
+                <p className="text-gray-800">{feature.description}</p>
               </div>
             ))}
           </div>
@@ -118,7 +118,7 @@ export default function DocsPage() {
         <section className="mb-12">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Quick Start</h2>
           <div className="bg-gray-50 rounded-lg p-6">
-            <p className="text-gray-700 mb-4">
+            <p className="text-gray-900 mb-4">
               Get TrueFace running in under 5 minutes with our development mode:
             </p>
             <div className="bg-gray-900 text-gray-100 p-4 rounded-md font-mono text-sm overflow-x-auto">
@@ -132,7 +132,7 @@ export default function DocsPage() {
               <div className="mb-2"># Start frontend (terminal 2)</div>
               <div className="mb-2">cd frontend && npm run dev</div>
             </div>
-            <p className="text-sm text-gray-600 mt-4">
+            <p className="text-sm text-gray-800 mt-4">
               Visit <code className="bg-gray-200 px-2 py-1 rounded text-sm">http://localhost:3000</code> to see TrueFace in action!
             </p>
           </div>
@@ -154,7 +154,7 @@ export default function DocsPage() {
                     {link.title}
                   </h3>
                 </div>
-                <p className="text-gray-600 group-hover:text-gray-700">{link.description}</p>
+                <p className="text-gray-800 group-hover:text-gray-900">{link.description}</p>
               </Link>
             ))}
           </div>
@@ -164,7 +164,7 @@ export default function DocsPage() {
         <section className="mb-12">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Architecture</h2>
           <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <p className="text-gray-700 mb-4">
+            <p className="text-gray-900 mb-4">
               TrueFace follows a modern, scalable architecture with clear separation of concerns:
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
@@ -191,7 +191,7 @@ export default function DocsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-3">Need Help?</h3>
-                <ul className="space-y-2 text-gray-700">
+                <ul className="space-y-2 text-gray-900">
                   <li>• Check the <Link href="/docs/troubleshooting" className="text-blue-600 hover:underline">troubleshooting guide</Link></li>
                   <li>• Review our <Link href="/docs/api-reference" className="text-blue-600 hover:underline">API documentation</Link></li>
                   <li>• Search existing GitHub issues</li>
@@ -200,7 +200,7 @@ export default function DocsPage() {
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-3">Contributing</h3>
-                <ul className="space-y-2 text-gray-700">
+                <ul className="space-y-2 text-gray-900">
                   <li>• 🐛 Report bugs and issues</li>
                   <li>• 💡 Suggest new features</li>
                   <li>• 🔧 Submit pull requests</li>
