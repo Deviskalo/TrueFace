@@ -1,0 +1,84 @@
+# Prometheus Configuration for TrueFace Monitoring
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+# Rule files for alerting
+rule_files:
+  - "rules/*.yml"
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          # - alertmanager:9093
+
+# Scrape configuration
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # TrueFace Backend API
+  - job_name: 'trueface-backend'
+    static_configs:
+      - targets: ['backend:8000']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+    params:
+      format: ['prometheus']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'trueface-backend'
+      - source_labels: [__address__]
+        target_label: service
+        replacement: 'backend'
+
+  # Node.js Frontend (if metrics are available)
+  - job_name: 'trueface-frontend'
+    static_configs:
+      - targets: ['frontend:3000']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+    scrape_timeout: 5s
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'trueface-frontend'
+      - source_labels: [__address__]
+        target_label: service
+        replacement: 'frontend'
+
+  # MongoDB metrics (using mongodb_exporter)
+  # - job_name: 'mongodb'
+  #   static_configs:
+  #     - targets: ['mongo_exporter:9216']
+  #   scrape_interval: 30s
+
+  # Redis metrics (using redis_exporter)
+  # - job_name: 'redis'
+  #   static_configs:
+  #     - targets: ['redis_exporter:9121']
+  #   scrape_interval: 30s
+
+  # Nginx metrics (using nginx-prometheus-exporter)
+  # - job_name: 'nginx'
+  #   static_configs:
+  #     - targets: ['nginx_exporter:9113']
+  #   scrape_interval: 30s
+
+  # Docker container metrics (using cAdvisor)
+  # - job_name: 'cadvisor'
+  #   static_configs:
+  #     - targets: ['cadvisor:8080']
+  #   scrape_interval: 30s
+
+  # System metrics (using node_exporter)
+  # - job_name: 'node'
+  #   static_configs:
+  #     - targets: ['node_exporter:9100']
+  #   scrape_interval: 30s

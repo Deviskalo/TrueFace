@@ -42,11 +42,19 @@ def get_client_ip(request: Request) -> str:
     return get_remote_address(request)
 
 
-# Create rate limiter instance
+# Redis configuration for rate limiting
+REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379")
+REDIS_PASSWORD = os.getenv("REDIS_PASSWORD", None)
+
+# Build Redis connection string
+if REDIS_PASSWORD:
+    REDIS_URL = REDIS_URL.replace("redis://", f"redis://:{REDIS_PASSWORD}@")
+
+# Create rate limiter instance with Redis backend
 limiter = Limiter(
     key_func=get_client_ip,
     default_limits=[RATE_LIMIT_DEFAULT] if RATE_LIMIT_ENABLED else [],
-    storage_uri="memory://",  # Use in-memory storage (consider Redis for production)
+    storage_uri=REDIS_URL if RATE_LIMIT_ENABLED else "memory://",
 )
 
 

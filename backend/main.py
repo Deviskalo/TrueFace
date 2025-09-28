@@ -31,6 +31,10 @@ from .security import (
     validate_email, validate_name, validate_file_upload, validate_admin_credentials,
     InputValidationError, get_security_context
 )
+from .monitoring import (
+    create_instrumentator, record_face_recognition_request,
+    update_business_metrics, FaceRecognitionTimer
+)
 from slowapi.errors import RateLimitExceeded
 import bcrypt
 
@@ -60,6 +64,11 @@ app.add_middleware(SecurityHeadersMiddleware)
 # Add rate limiting
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
+
+# Add Prometheus monitoring
+instrumentator = create_instrumentator()
+if instrumentator:
+    instrumentator.instrument(app).expose(app)
 
 # Add CORS middleware (configure for production)
 cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",")
@@ -173,13 +182,20 @@ async def login(request: Request, image: UploadFile = File(...)) -> schemas.Matc
     except InputValidationError as e:
         raise HTTPException(status_code=400, detail=str(e))
     
-    embedding = embeddings.get_embedding(contents)
+    with FaceRecognitionTimer("login"):
+        embedding = embeddings.get_embedding(contents)
+    
     if embedding is None:
+        record_face_recognition_request("login", "no_face_detected")
         raise HTTPException(status_code=400, detail="No face detected")
 
     match = db.find_best_match(embedding)
     if match is None:
+        record_face_recognition_request("login", "no_match", confidence=0.0)
         return JSONResponse({"match": None, "confidence": 0.0})
+
+    # Record successful recognition
+    record_face_recognition_request("login", "success", confidence=match.get("confidence", 0.0))
 
     # issue token for matched user
     session_id = db.create_session_with_expiry(
@@ -190,6 +206,14 @@ async def login(request: Request, image: UploadFile = File(...)) -> schemas.Matc
     )
     match["token"] = token
     db.log_action(match["user_id"], "login", confidence=match.get("confidence"))
+    
+    # Update business metrics
+    try:
+        session_count = len(db.get_user_sessions(match["user_id"]))
+        update_business_metrics(session_count=session_count)
+    except Exception:
+        pass  # Don't fail the request if metrics update fails
+    
     return JSONResponse({"match": match})
 
 

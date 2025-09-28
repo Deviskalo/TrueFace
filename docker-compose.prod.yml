@@ -42,7 +42,7 @@ services:
       - "8000:8000"
     environment:
       # Database configuration
-      - MONGO_URI=mongodb://mongo:27017/trueface_prod
+      - MONGO_URI=mongodb://trueface_app:${MONGO_APP_PASSWORD:-changeme789}@mongo:27017/trueface_prod?authSource=admin
       # Security settings
       - JWT_SECRET=${JWT_SECRET:-$(openssl rand -hex 32)}
       - SESSION_EXPIRES_MINUTES=60
@@ -53,6 +53,8 @@ services:
       - RATE_LIMIT_DEFAULT=100/minute
       - RATE_LIMIT_AUTH=10/minute
       - RATE_LIMIT_UPLOAD=5/minute
+      - REDIS_URL=redis://redis:6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-changeme456}
       - SECURITY_HEADERS_ENABLED=true
       # Production settings
       - DEV_MODE_NO_DB=false
@@ -88,6 +90,8 @@ services:
       - MONGO_INITDB_ROOT_USERNAME=${MONGO_ROOT_USER:-admin}
       - MONGO_INITDB_ROOT_PASSWORD=${MONGO_ROOT_PASSWORD:-changeme123}
       - MONGO_INITDB_DATABASE=trueface_prod
+      - MONGO_APP_PASSWORD=${MONGO_APP_PASSWORD:-changeme789}
+      - MONGO_READONLY_PASSWORD=${MONGO_READONLY_PASSWORD:-readonly123}
     volumes:
       - mongo_data:/data/db
       - mongo_config:/data/configdb

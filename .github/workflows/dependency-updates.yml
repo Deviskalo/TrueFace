@@ -1,0 +1,130 @@
+name: Dependency Updates
+
+on:
+  schedule:
+    # Run weekly on Mondays at 9 AM UTC
+    - cron: '0 9 * * 1'
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  # Update Python dependencies
+  update-python-deps:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install pip-tools
+      run: pip install pip-tools
+
+    - name: Update Python dependencies
+      run: |
+        cd backend
+        # Generate updated requirements
+        pip-compile --upgrade requirements.in --output-file requirements.txt || echo "requirements.in not found, skipping"
+        
+    - name: Create Pull Request for Python deps
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: 'chore: update Python dependencies'
+        title: 'chore: update Python dependencies'
+        body: |
+          ## Python Dependency Updates
+          
+          This PR updates Python dependencies to their latest versions.
+          
+          ### Changes
+          - Updated backend/requirements.txt
+          
+          ### Notes
+          - Please review the changes carefully
+          - Run tests to ensure compatibility
+          - Check for any breaking changes in the updated packages
+        branch: update-python-deps
+        delete-branch: true
+
+  # Update Node.js dependencies
+  update-nodejs-deps:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+
+    - name: Update Node.js dependencies
+      run: |
+        cd frontend
+        npm update
+        npm audit fix --audit-level moderate || true
+
+    - name: Create Pull Request for Node.js deps
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: 'chore: update Node.js dependencies'
+        title: 'chore: update Node.js dependencies'
+        body: |
+          ## Node.js Dependency Updates
+          
+          This PR updates Node.js dependencies to their latest versions.
+          
+          ### Changes
+          - Updated frontend/package.json and package-lock.json
+          - Applied security fixes from npm audit
+          
+          ### Notes
+          - Please review the changes carefully
+          - Run tests to ensure compatibility
+          - Check for any breaking changes in the updated packages
+        branch: update-nodejs-deps
+        delete-branch: true
+
+  # Security audit
+  security-audit:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Python security audit
+      uses: pypa/gh-action-pip-audit@v1.0.8
+      with:
+        inputs: backend/requirements.txt
+        
+    - name: Set up Node.js for security audit
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
+
+    - name: Run Node.js security audit
+      run: |
+        cd frontend
+        npm ci
+        npm audit --audit-level moderate
+
+    - name: Create security issue on failure
+      if: failure()
+      uses: actions/github-script@v6
+      with:
+        script: |
+          github.rest.issues.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            title: 'Security vulnerabilities detected',
+            body: 'Automated security audit detected vulnerabilities. Please review and update dependencies.',
+            labels: ['security', 'dependencies']
+          })
