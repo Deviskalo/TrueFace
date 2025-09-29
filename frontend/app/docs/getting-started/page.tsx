@@ -1,5 +1,4 @@
 import DocsLayout from '@/components/DocsLayout';
-import Link from 'next/link';
 
 export default function GettingStartedPage() {
   return (

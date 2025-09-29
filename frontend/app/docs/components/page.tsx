@@ -40,7 +40,7 @@ export default function SignupPage() {
         <h4>Props</h4>
         <ul>
           <li><strong>onCapture</strong>: function(imageData: string) → void</li>
-          <li><strong>screenshotFormat</strong>: "image/jpeg" | "image/png" | "image/webp" (default: "image/jpeg")</li>
+          <li><strong>screenshotFormat</strong>: &quot;image/jpeg&quot; | &quot;image/png&quot; | &quot;image/webp&quot; (default: &quot;image/jpeg&quot;)</li>
           <li><strong>onError</strong>: function(message: string) → void</li>
         </ul>
 

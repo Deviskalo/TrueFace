@@ -36,14 +36,14 @@ https://your-domain.com  # Production</code></pre>
         <p>Create a new user account with face enrollment.</p>
         
         <h4>Request:</h4>
-        <pre><code>curl -X POST http://localhost:8000/api/auth/signup \
-  -F "name=John Doe" \
-  -F "email=john@example.com" \
-  -F "image=@face_photo.jpg"</code></pre>
+        <pre><code>curl -X POST http://localhost:8000/api/auth/signup \\
+  -F &quot;name=John Doe&quot; \\
+  -F &quot;email=john@example.com&quot; \\
+  -F &quot;image=@face_photo.jpg&quot;</code></pre>
 
         <h4>Parameters:</h4>
         <ul>
-          <li><code>name</code> (string, required): User's full name</li>
+          <li><code>name</code> (string, required): User&apos;s full name</li>
           <li><code>email</code> (string, required): Valid email address</li>
           <li><code>image</code> (file, required): Face image (JPEG, PNG, WebP, GIF)</li>
         </ul>
@@ -58,8 +58,8 @@ https://your-domain.com  # Production</code></pre>
         <p>Authenticate user with face recognition.</p>
 
         <h4>Request:</h4>
-        <pre><code>curl -X POST http://localhost:8000/api/auth/login \
-  -F "image=@face_photo.jpg"</code></pre>
+        <pre><code>curl -X POST http://localhost:8000/api/auth/login \\
+  -F &quot;image=@face_photo.jpg&quot;</code></pre>
 
         <h4>Parameters:</h4>
         <ul>
@@ -90,7 +90,7 @@ https://your-domain.com  # Production</code></pre>
         <h2>User Management Endpoints</h2>
 
         <h3>GET /api/user/profile</h3>
-        <p>Get the current user's profile information.</p>
+        <p>Get the current user&apos;s profile information.</p>
 
         <h4>Headers:</h4>
         <pre><code>Authorization: Bearer &lt;token&gt;</code></pre>
@@ -107,7 +107,7 @@ https://your-domain.com  # Production</code></pre>
 }`}</code></pre>
 
         <h3>GET /api/user/sessions</h3>
-        <p>Get the user's active sessions.</p>
+        <p>Get the user&apos;s active sessions.</p>
 
         <h4>Headers:</h4>
         <pre><code>Authorization: Bearer &lt;token&gt;</code></pre>
@@ -139,7 +139,7 @@ https://your-domain.com  # Production</code></pre>
         <h2>History & Analytics</h2>
 
         <h3>GET /api/user/history</h3>
-        <p>Get user's authentication history.</p>
+        <p>Get user&apos;s authentication history.</p>
 
         <h4>Headers:</h4>
         <pre><code>Authorization: Bearer &lt;token&gt;</code></pre>
@@ -147,7 +147,7 @@ https://your-domain.com  # Production</code></pre>
         <h4>Query Parameters:</h4>
         <ul>
           <li><code>limit</code> (optional): Number of records to return (default: 50)</li>
-          <li><code>type</code> (optional): Filter by type ("login", "signup", "logout")</li>
+          <li><code>type</code> (optional): Filter by type (&quot;login&quot;, &quot;signup&quot;, &quot;logout&quot;)</li>
         </ul>
 
         <h4>Response:</h4>

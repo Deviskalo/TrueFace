@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useApi } from '../../hooks/useApi';
@@ -18,7 +18,16 @@ export default function Sessions() {
   const [sessions, setSessions] = useState<UserSession[]>([]);
   const [loadingSessions, setLoadingSessions] = useState(true);
   const [revokingAll, setRevokingAll] = useState(false);
-  const { getSessions, revokeAllSessions, isLoading, error, clearError } = useApi();
+  const { getSessions, revokeAllSessions, isLoading, error } = useApi();
+
+  const loadSessions = useCallback(async (userToken: string) => {
+    setLoadingSessions(true);
+    const sessionsData = await getSessions(userToken);
+    if (sessionsData) {
+      setSessions(sessionsData);
+    }
+    setLoadingSessions(false);
+  }, [getSessions]);
 
   useEffect(() => {
     // Check if user is logged in
@@ -30,16 +39,7 @@ export default function Sessions() {
     
     setToken(storedToken);
     loadSessions(storedToken);
-  }, [router]);
-
-  const loadSessions = async (userToken: string) => {
-    setLoadingSessions(true);
-    const sessionsData = await getSessions(userToken);
-    if (sessionsData) {
-      setSessions(sessionsData);
-    }
-    setLoadingSessions(false);
-  };
+  }, [router, loadSessions]);
 
   const handleRevokeAll = async () => {
     if (!token) return;
@@ -283,7 +283,7 @@ export default function Sessions() {
                     <p className="font-semibold text-yellow-800">Regular Cleanup</p>
                   </div>
                   <p className="text-yellow-700 text-sm">
-                    Regularly revoke unused sessions to maintain security, especially if you've used public computers.
+                    Regularly revoke unused sessions to maintain security, especially if you&apos;ve used public computers.
                   </p>
                 </div>
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">

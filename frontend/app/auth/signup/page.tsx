@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import CameraCapture from "../../../components/CameraCapture";
 import { useApi } from "../../../hooks/useApi";
-import ThemeToggle from "../../../app/components/ThemeToggle";
+import ThemeToggle from "../../components/ThemeToggle";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -184,7 +185,7 @@ export default function SignupPage() {
                   <span className="text-2xl text-white">✏️</span>
                 </div>
                 <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
-                  Let's Get Started
+                  Let&apos;s Get Started
                 </h2>
                 <p className="text-gray-600 dark:text-gray-300">
                   Tell us a bit about yourself to create your secure account
@@ -317,10 +318,13 @@ export default function SignupPage() {
                     Your Face Photo
                   </h3>
                   <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                    <img
+                    <Image
                       src={capturedImage.src}
                       alt="Your captured face"
+                      width={320}
+                      height={192}
                       className="w-full h-48 object-cover rounded-lg border-2 border-gray-200 dark:border-gray-600"
+                      unoptimized
                     />
                   </div>
                 </div>

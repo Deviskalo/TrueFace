@@ -4,7 +4,7 @@ import { useRef, useState, useCallback, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 
 // Dynamically import react-webcam to avoid SSR hydration issues
-// @ts-ignore
+// @ts-expect-error - Dynamic import typing issue with react-webcam
 const Webcam = dynamic(() => import('react-webcam'), { ssr: false });
 
 type WebcamInstance = typeof import('react-webcam')['default'];
@@ -52,12 +52,12 @@ export default function CameraCapture({ onCapture, onError, className = '' }: Ca
       stream.getTracks().forEach((t) => t.stop());
       setHasPermission(true);
       setShowManualPrompt(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       setHasPermission(false);
       let msg = 'Camera access denied. Please allow camera permissions to continue.';
-      if (error?.name === 'NotAllowedError') {
-        msg = "Camera access was blocked. Click the camera icon in your browser's address bar and allow access.";
-      } else if (error?.name === 'NotFoundError') {
+      if (error instanceof Error && error.name === 'NotAllowedError') {
+        msg = "Camera access was blocked. Click the camera icon in your browser&apos;s address bar and allow access.";
+      } else if (error instanceof Error && error.name === 'NotFoundError') {
         msg = 'No camera found. Please connect a camera and try again.';
       }
       onError?.(msg);
@@ -68,22 +68,24 @@ export default function CameraCapture({ onCapture, onError, className = '' }: Ca
     setHasPermission(true);
   }, []);
 
-  const handleUserMediaError = useCallback((error: any) => {
+  const handleUserMediaError = useCallback((error: string | DOMException) => {
     console.error('Camera access error:', error);
     setHasPermission(false);
     
     // Provide more specific error messages based on the error
     let errorMessage = 'Camera access denied. Please allow camera permissions to continue.';
-    if (error.name === 'NotAllowedError') {
-      errorMessage = "Camera access was blocked. Please click the camera icon in your browser's address bar and allow camera access.";
-    } else if (error.name === 'NotFoundError') {
+    if (typeof error === 'object' && error.name === 'NotAllowedError') {
+      errorMessage = "Camera access was blocked. Please click the camera icon in your browser&apos;s address bar and allow camera access.";
+    } else if (typeof error === 'object' && error.name === 'NotFoundError') {
       errorMessage = 'No camera found. Please connect a camera and try again.';
-    } else if (error.name === 'NotReadableError') {
+    } else if (typeof error === 'object' && error.name === 'NotReadableError') {
       errorMessage = 'Camera is being used by another application. Please close other apps using the camera.';
-    } else if (error.name === 'OverconstrainedError') {
+    } else if (typeof error === 'object' && error.name === 'OverconstrainedError') {
       errorMessage = 'Camera constraints not supported. Please try with a different camera.';
-    } else if (error.name === 'NotSupportedError') {
+    } else if (typeof error === 'object' && error.name === 'NotSupportedError') {
       errorMessage = 'Camera not supported in this browser. Please try Chrome, Firefox, or Safari.';
+    } else if (typeof error === 'string') {
+      errorMessage = error;
     }
     
     onError?.(errorMessage);
@@ -172,7 +174,7 @@ export default function CameraCapture({ onCapture, onError, className = '' }: Ca
             <p className="text-blue-700">Look for a camera permission popup, usually at the top of your browser window.</p>
           </div>
           <p className="text-xs text-gray-500">
-            Having issues? Make sure you're using Chrome, Firefox, or Safari with camera permissions enabled.
+            Having issues? Make sure you&apos;re using Chrome, Firefox, or Safari with camera permissions enabled.
           </p>
         </div>
         <div className="mt-4">
@@ -197,19 +199,17 @@ export default function CameraCapture({ onCapture, onError, className = '' }: Ca
       {/* Camera Preview */}
       <div className="relative rounded-lg overflow-hidden border-4 border-blue-200 bg-black">
         <Webcam
-          // @ts-expect-error dynamic webcam typing
+          // @ts-expect-error - react-webcam ref typing issue
           ref={webcamRef}
           audio={false}
           width={640}
           height={480}
           videoConstraints={videoConstraints}
           screenshotFormat="image/jpeg"
-          screenshotQuality={0.8}
           onUserMedia={handleUserMedia}
           onUserMediaError={handleUserMediaError}
-          className="block"
-          mirrored
-          playsInline
+          className="w-full h-full object-cover"
+          playsInline={true}
         />
         
         {/* Face Guide Overlay */}

@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from 'react';
 
 type Theme = 'light' | 'dark' | 'system';
 
@@ -37,7 +37,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
   };
 
   // Update actual theme based on theme setting
-  const updateActualTheme = (newTheme: Theme) => {
+  const updateActualTheme = useCallback((newTheme: Theme) => {
     let resolvedTheme: 'light' | 'dark';
     
     if (newTheme === 'system') {
@@ -53,7 +53,7 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
       document.documentElement.classList.toggle('dark', resolvedTheme === 'dark');
       document.documentElement.setAttribute('data-theme', resolvedTheme);
     }
-  };
+  }, []);
 
   // Set theme and persist to localStorage
   const setTheme = (newTheme: Theme) => {
@@ -102,14 +102,14 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
     return () => {
       mediaQuery.removeEventListener('change', handleSystemThemeChange);
     };
-  }, [theme]);
+  }, [theme, updateActualTheme]);
 
   // Update actual theme when theme changes
   useEffect(() => {
     if (mounted) {
       updateActualTheme(theme);
     }
-  }, [theme, mounted]);
+  }, [theme, mounted, updateActualTheme]);
 
   // Prevent hydration mismatch by not rendering until mounted
   if (!mounted) {

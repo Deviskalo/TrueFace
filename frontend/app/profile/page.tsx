@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useApi } from '../../hooks/useApi';
@@ -18,7 +18,16 @@ export default function Profile() {
   const [token, setToken] = useState<string | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
-  const { getProfile, isLoading, error, clearError } = useApi();
+  const { getProfile, isLoading, error } = useApi();
+
+  const loadProfile = useCallback(async (userToken: string) => {
+    setLoadingProfile(true);
+    const profileData = await getProfile(userToken);
+    if (profileData) {
+      setProfile(profileData);
+    }
+    setLoadingProfile(false);
+  }, [getProfile]);
 
   useEffect(() => {
     // Check if user is logged in
@@ -30,16 +39,7 @@ export default function Profile() {
     
     setToken(storedToken);
     loadProfile(storedToken);
-  }, [router]);
-
-  const loadProfile = async (userToken: string) => {
-    setLoadingProfile(true);
-    const profileData = await getProfile(userToken);
-    if (profileData) {
-      setProfile(profileData);
-    }
-    setLoadingProfile(false);
-  };
+  }, [router, loadProfile]);
 
   const handleLogout = () => {
     localStorage.removeItem('truface_token');

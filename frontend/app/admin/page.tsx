@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 
 // Types for admin data
 interface AdminUser {
@@ -40,7 +39,7 @@ interface AnalyticsData {
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export default function AdminDashboard() {
-  const router = useRouter();
+  // const router = useRouter(); // Commented out as it's not used
   
   // Authentication state
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -71,7 +70,7 @@ export default function AdminDashboard() {
         setAdminUser(JSON.parse(storedUser));
         setIsAuthenticated(true);
         loadDashboardData(storedToken);
-      } catch (err) {
+      } catch {
         // Clear invalid stored data
         localStorage.removeItem('admin_token');
         localStorage.removeItem('admin_user');
@@ -109,8 +108,8 @@ export default function AdminDashboard() {
       // Load dashboard data
       await loadDashboardData(data.token);
       
-    } catch (err) {
-      setLoginError(err instanceof Error ? err.message : 'Login failed');
+    } catch (error) {
+      setLoginError(error instanceof Error ? error.message : 'Login failed');
     } finally {
       setIsLoggingIn(false);
     }
@@ -146,8 +145,8 @@ export default function AdminDashboard() {
         setAnalytics(analyticsData.analytics);
       }
 
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load dashboard data');
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'Failed to load dashboard data');
     } finally {
       setLoading(false);
     }
@@ -185,7 +184,7 @@ export default function AdminDashboard() {
         const errorData = await response.json();
         alert(`Failed to disable user: ${errorData.detail}`);
       }
-    } catch (err) {
+    } catch {
       alert('Error disabling user');
     }
   };
@@ -318,7 +317,7 @@ export default function AdminDashboard() {
             ].map((tab) => (
               <button
                 key={tab.key}
-                onClick={() => setCurrentView(tab.key as any)}
+                onClick={() => setCurrentView(tab.key as 'overview' | 'users' | 'analytics' | 'logs')}
                 className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm ${
                   currentView === tab.key
                     ? 'border-blue-500 text-blue-600'
@@ -523,7 +522,7 @@ export default function AdminDashboard() {
             <div className="bg-white rounded-lg shadow p-6">
               <h3 className="text-lg font-medium text-gray-900 mb-4">User Growth (Last 7 Days)</h3>
               <div className="flex items-end space-x-2 h-32">
-                {analytics.user_growth.map((day, index) => (
+                {analytics.user_growth.map((day) => (
                   <div key={day.date} className="flex-1 flex flex-col items-center">
                     <div 
                       className="bg-blue-500 w-full rounded-t"

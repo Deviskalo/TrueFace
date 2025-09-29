@@ -3,9 +3,10 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useApi } from '../../../hooks/useApi';
 import CameraCapture from '../../../components/CameraCapture';
-import ThemeToggle from '../../../app/components/ThemeToggle';
+import ThemeToggle from '../../components/ThemeToggle';
 
 export default function LoginPage() {
   const { login, isLoading, error, clearError } = useApi();
@@ -269,10 +270,13 @@ export default function LoginPage() {
               {capturedImage && (
                 <div className="flex justify-center">
                   <div className="relative">
-                    <img 
+                    <Image 
                       src={capturedImage} 
                       alt="Captured face" 
+                      width={128}
+                      height={128}
                       className="w-32 h-32 rounded-3xl border-4 border-blue-200 dark:border-blue-600 object-cover shadow-xl"
+                      unoptimized
                     />
                     <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-3xl animate-pulse"></div>
                     <div className="absolute -inset-2 border-2 border-blue-400 dark:border-blue-500 rounded-3xl border-dashed opacity-60 animate-spin" style={{animationDuration: '3s'}}></div>

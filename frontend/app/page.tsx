@@ -40,7 +40,7 @@ export default function Home() {
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-3xl mx-auto">
             TrueFace uses advanced facial recognition technology to provide secure, 
-            convenient authentication. No more forgotten passwords – just look at the camera and you're in.
+            convenient authentication. No more forgotten passwords – just look at the camera and you&apos;re in.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -81,7 +81,7 @@ export default function Home() {
             <div className="text-4xl mb-4">🛡️</div>
             <h3 className="text-xl font-semibold mb-3 text-gray-900 dark:text-gray-100">Privacy First</h3>
             <p className="text-gray-600 dark:text-gray-300">
-              We don't store your photos. Only mathematical representations 
+              We don&apos;t store your photos. Only mathematical representations
               (embeddings) are kept, ensuring your privacy while maintaining security.
             </p>
           </div>
@@ -100,7 +100,7 @@ export default function Home() {
               </div>
               <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100">1. Capture Your Face</h3>
               <p className="text-gray-600 dark:text-gray-300">
-                Take a quick photo using your device's camera during registration.
+                Take a quick photo using your device&apos;s camera during registration.
               </p>
             </div>
             

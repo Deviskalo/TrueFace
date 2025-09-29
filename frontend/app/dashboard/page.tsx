@@ -122,7 +122,7 @@ export default function Dashboard() {
             Welcome to Your Dashboard! 🎉
           </h1>
           <p className="text-gray-600 dark:text-gray-300 mb-4">
-            Congratulations! You've successfully registered with TrueFace and are now logged in using facial recognition.
+            Congratulations! You&apos;ve successfully registered with TrueFace and are now logged in using facial recognition.
           </p>
           <div className="bg-green-50 dark:bg-green-900 border border-green-200 dark:border-green-700 rounded-lg p-4">
             <div className="flex items-center">
@@ -217,7 +217,7 @@ export default function Dashboard() {
         <div className="bg-green-50 dark:bg-green-900 rounded-lg p-6">
           <h2 className="text-xl font-semibold text-green-900 dark:text-green-100 mb-4">🎉 TrueFace is Fully Functional!</h2>
           <p className="text-green-800 dark:text-green-200 mb-4">
-            Congratulations! You've successfully used facial recognition to authenticate. Here's what's working:
+            Congratulations! You&apos;ve successfully used facial recognition to authenticate. Here&apos;s what&apos;s working:
           </p>
           <ul className="list-disc list-inside text-green-700 dark:text-green-300 space-y-2">
             <li>✅ Face-based user registration</li>

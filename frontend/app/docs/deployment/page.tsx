@@ -17,7 +17,7 @@ export default function DeploymentDocsPage() {
         <ul>
           <li>Docker and Docker Compose installed</li>
           <li>Domain name with DNS configured</li>
-          <li>SSL certificate (Let's Encrypt recommended)</li>
+          <li>SSL certificate (Let&apos;s Encrypt recommended)</li>
           <li>MongoDB instance (local or cloud)</li>
           <li>Basic Linux server administration knowledge</li>
         </ul>
@@ -51,7 +51,7 @@ LOG_LEVEL=info</code></pre>
         <pre><code># Create SSL directory
 mkdir -p nginx/ssl
 
-# Option A: Let's Encrypt (Recommended)
+# Option A: Let&apos;s Encrypt (Recommended)
 sudo apt install certbot
 sudo certbot certonly --standalone -d your-domain.com
 cp /etc/letsencrypt/live/your-domain.com/fullchain.pem nginx/ssl/cert.pem
@@ -60,7 +60,7 @@ cp /etc/letsencrypt/live/your-domain.com/privkey.pem nginx/ssl/private.key
 # Option B: Self-signed (Development only)
 openssl req -x509 -newkey rsa:2048 -keyout nginx/ssl/private.key \
   -out nginx/ssl/cert.pem -days 365 -nodes \
-  -subj "/CN=your-domain.com"</code></pre>
+  -subj &quot;/CN=your-domain.com&quot;</code></pre>
 
         <h3>4. Deploy Services</h3>
         <pre><code># Start the complete stack
@@ -137,7 +137,7 @@ gcloud run deploy trueface-backend \
   --image gcr.io/PROJECT-ID/trueface-backend \
   --platform managed \
   --region us-central1 \
-  --set-env-vars="MONGO_URI=mongodb://...,REDIS_URL=redis://..."
+  --set-env-vars=&quot;MONGO_URI=mongodb://...,REDIS_URL=redis://...&quot;
 
 # Deploy frontend service
 gcloud run deploy trueface-frontend \
@@ -262,7 +262,7 @@ mongodump --host localhost --port 27017 --db trueface_production --out /backup/$
 
 # Automated backup script
 #!/bin/bash
-BACKUP_DIR="/backup/mongodb/$(date +%Y%m%d_%H%M%S)"
+BACKUP_DIR=&quot;/backup/mongodb/$(date +%Y%m%d_%H%M%S)&quot;
 mkdir -p $BACKUP_DIR
 mongodump --host localhost --port 27017 --db trueface_production --out $BACKUP_DIR
 tar -czf $BACKUP_DIR.tar.gz $BACKUP_DIR
@@ -319,7 +319,7 @@ df -h</code></pre>
         <h2>Maintenance Tasks</h2>
         <ul>
           <li>Regular security updates for base images</li>
-          <li>SSL certificate renewal (automated with Let's Encrypt)</li>
+          <li>SSL certificate renewal (automated with Let&apos;s Encrypt)</li>
           <li>Database backup verification</li>
           <li>Log rotation and cleanup</li>
           <li>Performance monitoring review</li>

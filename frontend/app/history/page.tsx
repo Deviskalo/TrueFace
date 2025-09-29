@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useApi } from '../../hooks/useApi';
@@ -10,7 +10,7 @@ interface HistoryEntry {
   action: string;
   confidence: number | null;
   timestamp: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
   success: boolean;
 }
 
@@ -20,7 +20,16 @@ export default function History() {
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(true);
   const [limit, setLimit] = useState(50);
-  const { getHistory, isLoading, error, clearError } = useApi();
+  const { getHistory, isLoading, error } = useApi();
+
+  const loadHistory = useCallback(async (userToken: string, recordLimit: number) => {
+    setLoadingHistory(true);
+    const historyData = await getHistory(userToken, recordLimit);
+    if (historyData) {
+      setHistory(historyData);
+    }
+    setLoadingHistory(false);
+  }, [getHistory]);
 
   useEffect(() => {
     // Check if user is logged in
@@ -32,16 +41,7 @@ export default function History() {
     
     setToken(storedToken);
     loadHistory(storedToken, limit);
-  }, [router, limit]);
-
-  const loadHistory = async (userToken: string, recordLimit: number) => {
-    setLoadingHistory(true);
-    const historyData = await getHistory(userToken, recordLimit);
-    if (historyData) {
-      setHistory(historyData);
-    }
-    setLoadingHistory(false);
-  };
+  }, [router, limit, loadHistory]);
 
   const handleLogout = () => {
     localStorage.removeItem('truface_token');

@@ -5,8 +5,7 @@ import {
   CodeBracketIcon, 
   CubeIcon, 
   CloudIcon,
-  WrenchScrewdriverIcon,
-  BookOpenIcon
+  WrenchScrewdriverIcon
 } from '@heroicons/react/24/outline';
 
 const features = [
